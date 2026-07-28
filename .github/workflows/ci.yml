@@ -5,6 +5,11 @@ on:
     branches: [master]
     tags: ['v*']
   pull_request:
+  workflow_dispatch:
+    inputs:
+      publish_tag:
+        description: 'Existing tag to (re)publish to the Kodi repo, eg. v3.0.68'
+        required: true
 
 jobs:
   check:
@@ -57,3 +62,40 @@ jobs:
           gh release create "$GITHUB_REF_NAME" "$ZIP" \
             --title "Seren ${VERSION}" --notes-file release-notes.txt \
             || gh release upload "$GITHUB_REF_NAME" "$ZIP" --clobber
+
+  publish-kodi-repo:
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Build addon zip from tag
+        run: |
+          TAG="${{ github.event.inputs.publish_tag || github.ref_name }}"
+          VERSION="${TAG#v}"
+          echo "TAG=$TAG" >> "$GITHUB_ENV"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          git archive --prefix="plugin.video.seren/" -o "plugin.video.seren-${VERSION}.zip" "$TAG"
+
+      - name: Checkout Kodi repo
+        uses: actions/checkout@v4
+        with:
+          repository: klass-723/klass-723.github.io
+          ssh-key: ${{ secrets.PAGES_DEPLOY_KEY }}
+          path: pages
+
+      - name: Update Kodi repo
+        run: python3 scripts/update_kodi_repo.py pages/packages "plugin.video.seren-${VERSION}.zip"
+
+      - name: Push if changed
+        run: |
+          cd pages
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet && { echo "Kodi repo already up to date"; exit 0; }
+          git commit -m "Seren ${VERSION}"
+          git push
