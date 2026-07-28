@@ -1,0 +1,60 @@
+name: Claude Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  claude-review:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          fetch-depth: 1
+
+      - name: Run Claude Code Review
+        id: claude-review
+        uses: anthropics/claude-code-action@28f83620103c48a57093dcc2837eec89e036bb9f
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          allowed_bots: "dependabot[bot]"
+          use_sticky_comment: true
+
+          allowed_tools: "Bash(python3 -m compileall -q resources/lib seren.py service.py),Bash(pip install ruff),Bash(ruff check --select E9,F63,F7,F82 .)"
+
+          direct_prompt: |
+            You are reviewing a PR for a maintained fork of Seren, a Kodi video
+            addon (Python 3, Kodi 19-21). It integrates Trakt, Real-Debrid,
+            Premiumize and All-Debrid.
+
+            ## Critical checks
+            - Trakt API calls must paginate: use get_all_pages_json /
+              get_all_pages_flat, never assume a one-shot get_json returns
+              everything (Trakt enforces pagination on sync endpoints since
+              June 2026 — trakt/trakt-api#775). sync/watched/shows needs
+              extended=progress.
+            - Calendar endpoints need YYYY-MM-DD dates; list item endpoints use
+              singular types (items/movie, items/show).
+            - New setting ids in resources/settings.xml need matching label ids
+              in resources/language/resource.language.en_gb/strings.po.
+            - Release PRs must bump the addon.xml version and add matching
+              blocks to changelog.txt and the addon.xml news section.
+            - Python must run on Kodi's bundled Python 3 — no pip dependencies;
+              runtime deps only via addon.xml <requires>.
+            - Never log or commit Trakt/debrid tokens; kodi.log files and
+              userdata settings must never enter the repo.
+            - Empty menu states must close directories cleanly
+              (g.close_directory), not surface GetDirectory errors.
+
+            ## Style
+            - Be concise and actionable — no fluff.
+            - Flag bugs and token/privacy issues as blocking.
+            - Flag style nits as non-blocking suggestions.
+            - If the PR looks good, say so briefly — don't invent issues.
