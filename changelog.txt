@@ -1,3 +1,6 @@
+Changelog 3.0.68
+[BUG] Fix addon description formatting in Kodi info dialogs
+
 Changelog 3.0.67
 [BUG] Fix empty Trakt list contents closing as an error
 
