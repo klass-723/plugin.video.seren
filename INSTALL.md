@@ -12,16 +12,16 @@ This fork is a maintained build of Seren for Kodi based on work by Nixgates, bbv
 ## Fresh Install (recommended - auto-updates)
 
 1. In Kodi, go to `Settings > System > Add-ons` and enable `Unknown sources`.
-2. Go to `Settings > File Manager > Add Source` and enter `https://klass-723.github.io/packages/` (name it `klass`).
-3. Go to `Add-ons > Install from zip file > klass > repository.klass > repository.klass-1.0.0.zip`.
-4. Go to `Add-ons > Install from repository > Klass Repository > Video add-ons > Seren` and install it. All dependencies install automatically, and future Seren releases update automatically.
+2. Go to `Settings > File Manager > Add Source` and enter `https://klass-723.github.io/packages/` (name it `seren-maintained`).
+3. Go to `Add-ons > Install from zip file > seren-maintained > repository.seren.maintained > repository.seren.maintained-1.0.0.zip`.
+4. Go to `Add-ons > Install from repository > Seren Maintained Repository > Video add-ons > Seren` and install it. All dependencies install automatically, and future Seren releases update automatically.
 5. Open Seren settings and authorize Trakt if you use Trakt menus.
 6. Open `Seren > Tools > Provider Tools > Install Package` to install your provider package.
 
 ## Fresh Install (manual zip)
 
 1. Download the latest `plugin.video.seren-*.zip` from this repo's Releases page.
-2. Install `repository.nixgates` from `https://nixgates.github.io/packages/` first so Kodi can resolve Seren's dependencies (not needed if you installed the Klass Repository above).
+2. Install `repository.nixgates` from `https://nixgates.github.io/packages/` first so Kodi can resolve Seren's dependencies (not needed if you installed the Seren Maintained Repository above).
 3. Go to `Add-ons > Install from zip file` and select the downloaded Seren zip.
 4. Authorize Trakt and install a provider package as above.
 

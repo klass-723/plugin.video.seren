@@ -13,7 +13,9 @@ Seren is a multi-source addon for Kodi with the added ability to install custom 
 
 ## Install and Update
 
-User install/update instructions are in [INSTALL.md](INSTALL.md).
+Quick install with automatic updates: add `https://klass-723.github.io/packages/` as a file manager source in Kodi, install `repository.seren.maintained-1.0.0.zip` from it, then install Seren from the repository.
+
+Full instructions, including manual zip installs, are in [INSTALL.md](INSTALL.md).
 
 ## Credits
 
