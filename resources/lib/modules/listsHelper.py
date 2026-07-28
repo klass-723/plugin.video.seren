@@ -31,8 +31,10 @@ class ListsHelper:
         )
 
         if not list_items:
-            g.log(f"Failed to pull list {arguments['trakt_id']} from Trakt/Database", 'error')
-            g.cancel_directory()
+            # a list with no items of this media type (eg. a movies-only list browsed under shows)
+            # is a valid empty menu, not a failure
+            g.log(f"No {media_type} items returned for list {arguments['trakt_id']}", "debug")
+            g.close_directory(g.CONTENT_SHOW if media_type in ("tvshow", "shows") else g.CONTENT_MOVIE)
             return
 
         if media_type in ['tvshow', 'shows']:
