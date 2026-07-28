@@ -1,11 +1,11 @@
 # Seren Maintained Install and Update Guide
 
-This fork is a maintained build of Seren for Kodi based on work by Nixgates, bbviking, and the Seren community. Current build: `3.0.66`.
+This fork is a maintained build of Seren for Kodi based on work by Nixgates, bbviking, and the Seren community. The current build is always the newest zip on the Releases page.
 
 ## Before Installing
 
 - Use Kodi 19 or newer.
-- Use the release zip named like `plugin.video.seren-3.0.66.zip`.
+- Use the release zip named like `plugin.video.seren-<version>.zip`.
 - Do not use GitHub's automatic `Source code` zip as the normal Kodi install file.
 - Seren still needs a compatible debrid account and a provider package for normal scraping/playback.
 

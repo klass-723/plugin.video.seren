@@ -1,3 +1,6 @@
+Changelog 3.0.67
+[BUG] Fix empty Trakt list contents closing as an error
+
 Changelog 3.0.66
 [BUG] Fix Trakt watched and collection sync pagination
 [BUG] Fix Trakt personal and liked list endpoints and paginated list loading
