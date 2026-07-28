@@ -1,6 +1,6 @@
 # Seren Maintained Install and Update Guide
 
-This fork is a maintained build of Seren for Kodi. Current build: `3.0.66`.
+This fork is a maintained build of Seren for Kodi based on work by Nixgates, bbviking, and the Seren community. Current build: `3.0.66`.
 
 ## Before Installing
 

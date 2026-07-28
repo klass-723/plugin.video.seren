@@ -7,13 +7,19 @@
 
 # Seren (plugin.video.seren)
 
-This repository is a maintained fork of Seren. The original Seren add-on was created by Nixgates; this fork carries compatibility and maintenance fixes for current Kodi/Trakt use.
+This repository is a maintained fork of Seren. The original Seren add-on was created by Nixgates; this fork is based on bbviking's 3.0.x maintenance work and carries compatibility fixes for current Kodi/Trakt use.
 
 Seren is a multi-source addon for Kodi with the added ability to install custom provider modules. Unlike other Kodi addons which are generally built for a single service use, Seren allows users to connect to multiple online/offline services at once for their viewing with a single click.
 
 ## Install and Update
 
 User install/update instructions are in [INSTALL.md](INSTALL.md).
+
+## Credits
+
+- Nixgates created the original Seren add-on.
+- bbviking maintained the 3.0.x fork this build is based on, including selected maintenance work carried into `3.0.66`.
+- Community Seren forks and testers, including MrSpongeHead's fork, helped identify Trakt compatibility issues reviewed while preparing this build.
 
 ## Contribution
 
