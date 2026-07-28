@@ -54,15 +54,6 @@ class Menus:
 
         return ListBuilder()
 
-    def _get_all_trakt_pages(self, endpoint, **params):
-        params.setdefault("ignore_cache", True)
-        params.setdefault("limit", self.page_limit)
-        return [
-            item
-            for page in self.trakt_api.get_all_pages_json(endpoint, **params)
-            for item in (page or [])
-        ]
-
     ######################################################
     # MENUS
     ######################################################
@@ -390,7 +381,7 @@ class Menus:
     def my_recent_episodes(self):
         hidden_shows = self.hidden_database.get_hidden_items("calendar", "shows")
         date_string = datetime.datetime.now() - datetime.timedelta(days=13)
-        trakt_list = self._get_all_trakt_pages(
+        trakt_list = self.trakt_api.get_all_pages_flat(
             f"calendars/my/shows/{g.datetime_to_string(date_string.date())}/14", extended="full"
         )
         trakt_list = sorted(
@@ -404,7 +395,7 @@ class Menus:
     @trakt_auth_guard
     def my_upcoming_episodes(self):
         tomorrow = g.datetime_to_string(datetime.date.today() + datetime.timedelta(days=1))
-        upcoming_episodes = self._get_all_trakt_pages(f"calendars/my/shows/{tomorrow}/30", extended="full")[
+        upcoming_episodes = self.trakt_api.get_all_pages_flat(f"calendars/my/shows/{tomorrow}/30", extended="full")[
             : self.page_limit
         ]
         self.list_builder.mixed_episode_builder(

@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+    tags: ['v*']
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Syntax check
+        run: python -m compileall -q resources/lib seren.py service.py
+
+      - name: Lint (syntax errors and undefined names only)
+        run: |
+          pip install --quiet ruff
+          ruff check --select E9,F63,F7,F82 .
+
+      - name: Validate XML
+        run: |
+          python - <<'PY'
+          import xml.etree.ElementTree as ET
+          for f in ("addon.xml", "resources/settings.xml"):
+              ET.parse(f)
+          print("XML OK")
+          PY
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build addon zip
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          git archive --prefix="plugin.video.seren/" -o "plugin.video.seren-${VERSION}.zip" "$GITHUB_REF_NAME"
+
+      - name: Create or update release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          ZIP="plugin.video.seren-${VERSION}.zip"
+          awk '/^Changelog/{c++} c==1' changelog.txt > release-notes.txt
+          gh release create "$GITHUB_REF_NAME" "$ZIP" \
+            --title "Seren ${VERSION}" --notes-file release-notes.txt \
+            || gh release upload "$GITHUB_REF_NAME" "$ZIP" --clobber

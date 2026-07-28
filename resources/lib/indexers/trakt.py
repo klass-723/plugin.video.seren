@@ -734,6 +734,18 @@ class TraktAPI(ApiBase):
                 )
             )
 
+    def get_all_pages_flat(self, url, **params):
+        """
+        Fetches every available page from a trakt endpoint and returns the normalised results as one flat list
+        :param url: endpoint to call against
+        :param params: any params for the url
+        :return: list of results across all pages
+        """
+        params.setdefault("ignore_cache", True)
+        result = [item for page in self.get_all_pages_json(url, **params) for item in (page or [])]
+        g.log(f"Fetched {len(result)} items across all pages from {url}", "debug")
+        return result
+
     @use_cache()
     def get_json_cached(self, url, **params):
         """

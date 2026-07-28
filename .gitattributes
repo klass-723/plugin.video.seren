@@ -1,0 +1,4 @@
+# Keep development-only files out of the Kodi install zip built with git archive
+.github export-ignore
+.gitattributes export-ignore
+.gitignore export-ignore

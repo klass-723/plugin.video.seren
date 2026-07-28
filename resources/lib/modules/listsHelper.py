@@ -93,30 +93,14 @@ class ListsHelper:
         if trakt_lists:
             return trakt_lists
 
-        g.log(f"No {media_type} list contents found for {endpoint}; falling back to unfiltered list menu")
-        trakt_lists = self._get_unfiltered_lists(endpoint)
-        g.log(f"Fetched {len(trakt_lists)} unfiltered Trakt list menu rows from {endpoint}")
-        return trakt_lists
+        # extract_trakt_page only returns lists containing items of media_type; when the user has
+        # none of those, fall back to showing their lists unfiltered rather than an empty menu
+        g.log(f"No {media_type} list contents found for {endpoint}; falling back to unfiltered list menu", "debug")
+        return self._get_unfiltered_lists(endpoint)
 
     def _get_unfiltered_lists(self, endpoint):
-        results = []
         page_limit = self.lists_database.page_limit
-        page_count = 0
-        for page in self.lists_database.trakt_api.get_all_pages_json(
-            endpoint,
-            limit=page_limit,
-            ignore_cache=True,
-        ):
-            page_count += 1
-            g.log(
-                f"Fetched {len(page) if page else 0} unfiltered Trakt list rows "
-                f"from {endpoint} page {page_count}"
-            )
-            if page:
-                results.extend(page)
-            if not self.no_paging and len(results) >= page_limit * g.PAGE:
-                break
-
+        results = self.lists_database.trakt_api.get_all_pages_flat(endpoint, limit=page_limit)
         if self.no_paging:
             return results
 
@@ -124,16 +108,13 @@ class ListsHelper:
         return results[offset : offset + page_limit]
 
     def _normalize_list_menu(self, trakt_lists):
-        if not trakt_lists:
-            return []
-
         normalized_lists = []
-        for trakt_list in trakt_lists:
+        for trakt_list in trakt_lists or []:
             if not isinstance(trakt_list, dict):
                 continue
 
-            trakt_object = MetadataHandler.trakt_object(trakt_list)
-            info = MetadataHandler.info(trakt_object)
+            # info is a live reference into trakt_list, so these defaults persist for the menu builder
+            info = MetadataHandler.info(MetadataHandler.trakt_object(trakt_list))
             if not info:
                 continue
 

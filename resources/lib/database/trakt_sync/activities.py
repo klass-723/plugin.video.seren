@@ -1,4 +1,3 @@
-import itertools
 import time
 
 import xbmc
@@ -225,21 +224,9 @@ class TraktSyncDatabase(trakt_sync.TraktSyncDatabase):
             items.extend(paged_items)
         return {section: items}
 
-    def _get_all_sync_pages(self, endpoint, **params):
-        params.setdefault("ignore_cache", True)
-        params.setdefault("limit", 250)
-
-        items = []
-        for page in self.trakt_api.get_all_pages_json(endpoint, **params):
-            if page:
-                items.extend(page)
-
-        g.log(f"Fetched {len(items)} Trakt sync items from {endpoint}")
-        return items
-
     def _sync_watched_movies(self):
         try:
-            trakt_watched = self._get_all_sync_pages("/sync/watched/movies", extended="full")
+            trakt_watched = self.trakt_api.get_all_pages_flat("/sync/watched/movies", extended="full", limit=250)
             if len(trakt_watched) == 0:
                 return
             self.insert_trakt_movies(trakt_watched)
@@ -257,7 +244,7 @@ class TraktSyncDatabase(trakt_sync.TraktSyncDatabase):
 
     def _sync_collection_movies(self):
         try:
-            trakt_collection = self._get_all_sync_pages("sync/collection/movies", extended="full")
+            trakt_collection = self.trakt_api.get_all_pages_flat("sync/collection/movies", extended="full", limit=250)
             if len(trakt_collection) == 0:
                 return
             self.insert_trakt_movies(trakt_collection)
@@ -275,10 +262,7 @@ class TraktSyncDatabase(trakt_sync.TraktSyncDatabase):
 
     def _sync_rated_movies(self):
         try:
-            trakt_rated = self.trakt_api.get_all_pages_json(
-                "/sync/ratings/movies", extended="full", limit=50, ignore_cache=True
-            )
-            trakt_rated = list(itertools.chain.from_iterable(trakt_rated))
+            trakt_rated = self.trakt_api.get_all_pages_flat("/sync/ratings/movies", extended="full", limit=50)
 
             self.insert_trakt_movies(trakt_rated)
 
@@ -316,7 +300,8 @@ class TraktSyncDatabase(trakt_sync.TraktSyncDatabase):
     def sync_watched_episodes(self):
         try:
             get = MetadataHandler.get_trakt_info
-            trakt_watched = self._get_all_sync_pages("sync/watched/shows", extended="progress")
+            # Trakt caps extended=progress responses at 100 items per page, so request exactly that
+            trakt_watched = self.trakt_api.get_all_pages_flat("sync/watched/shows", extended="progress", limit=100)
             if not trakt_watched:
                 return
             self.insert_trakt_shows(trakt_watched)
@@ -340,7 +325,8 @@ class TraktSyncDatabase(trakt_sync.TraktSyncDatabase):
             ]
             g.log(
                 f"Trakt watched shows sync processed {len(trakt_watched)} shows "
-                f"and {len(watched_episodes)} watched episodes"
+                f"and {len(watched_episodes)} watched episodes",
+                "debug",
             )
 
             with self.create_temp_table(
@@ -388,7 +374,7 @@ class TraktSyncDatabase(trakt_sync.TraktSyncDatabase):
     def sync_collection_episodes(self):
         try:
             get = MetadataHandler.get_trakt_info
-            trakt_collection = self._get_all_sync_pages("sync/collection/shows", extended="full")
+            trakt_collection = self.trakt_api.get_all_pages_flat("sync/collection/shows", extended="full", limit=250)
             if not trakt_collection:
                 return
 
@@ -409,7 +395,8 @@ class TraktSyncDatabase(trakt_sync.TraktSyncDatabase):
             ]
             g.log(
                 f"Trakt collected shows sync processed {len(trakt_collection)} shows "
-                f"and {len(collected_episodes)} collected episodes"
+                f"and {len(collected_episodes)} collected episodes",
+                "debug",
             )
 
             with self.create_temp_table(
@@ -457,20 +444,14 @@ class TraktSyncDatabase(trakt_sync.TraktSyncDatabase):
 
     def _sync_rated_shows(self):
         try:
-            trakt_rated_shows = self.trakt_api.get_all_pages_json(
-                "sync/ratings/shows", extended="full", limit=50, ignore_cache=True
-            )
-            trakt_rated_shows = list(itertools.chain.from_iterable(trakt_rated_shows))
+            trakt_rated_shows = self.trakt_api.get_all_pages_flat("sync/ratings/shows", extended="full", limit=50)
             self.insert_trakt_shows(trakt_rated_shows)
 
-            trakt_rated_seasons = self.trakt_api.get_all_pages_json(
-                "sync/ratings/seasons", extended="full", limit=50, ignore_cache=True
-            )
-            trakt_rated_seasons = list(itertools.chain.from_iterable(trakt_rated_seasons))
+            trakt_rated_seasons = self.trakt_api.get_all_pages_flat("sync/ratings/seasons", extended="full", limit=50)
             self.insert_trakt_shows(i.get("show") for i in trakt_rated_seasons)
 
             def fetch_rated_episodes(rating):
-                return self._get_all_sync_pages(
+                return self.trakt_api.get_all_pages_flat(
                     f"sync/ratings/episodes/{rating}", extended="full", limit=50, timeout=90
                 )
 
