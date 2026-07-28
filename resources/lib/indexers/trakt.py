@@ -610,14 +610,19 @@ class TraktAPI(ApiBase):
         :param params: URL params for request
         :return: JSON response
         """
+        sort_by = params.pop("sort_by", None)
+        sort_how = params.pop("sort_how", None)
+
         response = self.get(url=url, **params)
         if response is None:
             return None
         try:
+            effective_sort_by = sort_by if sort_by is not None else response.headers.get("X-Sort-By")
+            effective_sort_how = sort_how if sort_how is not None else response.headers.get("X-Sort-How")
             return self._handle_response(
                 self._try_sort(
-                    response.headers.get("X-Sort-By"),
-                    response.headers.get("X-Sort-How"),
+                    effective_sort_by,
+                    effective_sort_how,
                     response.json(),
                 )
             )
@@ -712,15 +717,19 @@ class TraktAPI(ApiBase):
         :return: Yields trakt pages
         """
         ignore_cache = params.pop("ignore_cache", False)
+        sort_by = params.pop("sort_by", None)
+        sort_how = params.pop("sort_how", None)
         get_method = self.get if ignore_cache else self.get_cached
 
         for response in self._get_all_pages(get_method, url, **params):
             if not response:
                 return
+            effective_sort_by = sort_by if sort_by is not None else response.headers.get("X-Sort-By")
+            effective_sort_how = sort_how if sort_how is not None else response.headers.get("X-Sort-How")
             yield self._handle_response(
                 self._try_sort(
-                    response.headers.get("X-Sort-By"),
-                    response.headers.get("X-Sort-How"),
+                    effective_sort_by,
+                    effective_sort_how,
                     response.json(),
                 )
             )

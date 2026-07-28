@@ -42,17 +42,13 @@ class ListsHelper:
 
     def my_trakt_lists(self, media_type):
         self._create_list_menu(
-            self.lists_database.extract_trakt_page(
-                'users/me/lists', media_type, page=g.PAGE, no_paging=self.no_paging, pull_all=True, ignore_cache=True
-            ),
+            self._get_list_menu('users/me/lists', media_type),
             media_type=media_type,
         )
 
     def my_liked_lists(self, media_type):
         self._create_list_menu(
-            self.lists_database.extract_trakt_page(
-                'users/likes/lists', media_type, page=g.PAGE, no_paging=self.no_paging, pull_all=True, ignore_cache=True
-            ),
+            self._get_list_menu('users/me/likes/lists', media_type),
             media_type=media_type,
         )
 
@@ -69,8 +65,10 @@ class ListsHelper:
     def _create_list_menu(self, trakt_lists, **params):
         trakt_object = MetadataHandler.trakt_object
         get = MetadataHandler.get_trakt_info
+        trakt_lists = self._normalize_list_menu(trakt_lists)
         if not trakt_lists:
-            trakt_lists = []
+            g.close_directory(g.CONTENT_MENU)
+            return
 
         self.builder.lists_menu_builder(
             [
@@ -82,6 +80,69 @@ class ListsHelper:
             ],
             **params,
         )
+
+    def _get_list_menu(self, endpoint, media_type):
+        trakt_lists = self.lists_database.extract_trakt_page(
+            endpoint,
+            media_type,
+            page=g.PAGE,
+            no_paging=self.no_paging,
+            pull_all=True,
+            ignore_cache=True,
+        )
+        if trakt_lists:
+            return trakt_lists
+
+        g.log(f"No {media_type} list contents found for {endpoint}; falling back to unfiltered list menu")
+        trakt_lists = self._get_unfiltered_lists(endpoint)
+        g.log(f"Fetched {len(trakt_lists)} unfiltered Trakt list menu rows from {endpoint}")
+        return trakt_lists
+
+    def _get_unfiltered_lists(self, endpoint):
+        results = []
+        page_limit = self.lists_database.page_limit
+        page_count = 0
+        for page in self.lists_database.trakt_api.get_all_pages_json(
+            endpoint,
+            limit=page_limit,
+            ignore_cache=True,
+        ):
+            page_count += 1
+            g.log(
+                f"Fetched {len(page) if page else 0} unfiltered Trakt list rows "
+                f"from {endpoint} page {page_count}"
+            )
+            if page:
+                results.extend(page)
+            if not self.no_paging and len(results) >= page_limit * g.PAGE:
+                break
+
+        if self.no_paging:
+            return results
+
+        offset = page_limit * (g.PAGE - 1)
+        return results[offset : offset + page_limit]
+
+    def _normalize_list_menu(self, trakt_lists):
+        if not trakt_lists:
+            return []
+
+        normalized_lists = []
+        for trakt_list in trakt_lists:
+            if not isinstance(trakt_list, dict):
+                continue
+
+            trakt_object = MetadataHandler.trakt_object(trakt_list)
+            info = MetadataHandler.info(trakt_object)
+            if not info:
+                continue
+
+            info["mediatype"] = "list"
+            if not info.get("username"):
+                info["username"] = self.lists_database.trakt_api.username or "me"
+            normalized_lists.append(trakt_list)
+
+        return normalized_lists
 
     @staticmethod
     def _backwards_compatibility(media_type):

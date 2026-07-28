@@ -283,8 +283,9 @@ class SQLiteConnection(_connection):
 
     def _create_connection(self):
         retries = 0
+        delay = 0.1
         exception = None
-        while retries != 50 and not g.abort_requested():
+        while retries < 50 and not g.abort_requested():
             try:
                 connection = sqlite3.connect(  # pylint: disable=no-member
                     self.path,
@@ -295,13 +296,22 @@ class SQLiteConnection(_connection):
                 )
                 self._set_connection_settings(connection)
                 return connection
+            except sqlite3.OperationalError as error:  # pylint: disable=no-member
+                exception = error
+                if "database is locked" in str(error) or "unable to open database" in str(error):
+                    g.log(f"Database is locked; retrying ({retries + 1}/50): {self.path}", "warning")
+                    g.wait_for_abort(delay)
+                    delay = min(delay * 2, 5)
+                else:
+                    raise
             except Exception as error:
                 self._retry_handler(error)
                 exception = error
             retries += 1
-        # If we reach here we have exceeded our retries so just raise the last exception
-        g.log(f"Unable to connect to database '{self.path}' {exception=}", "error")
-        raise exception
+        g.log(f"Unable to connect to database '{self.path}' after {retries} attempts: {exception}", "error")
+        if exception:
+            raise exception
+        raise RuntimeError(f"Unable to connect to database '{self.path}'")
 
     def _retry_handler(self, exception):
         if isinstance(exception, sqlite3.OperationalError) and (  # pylint: disable=no-member
@@ -331,6 +341,7 @@ class SQLiteConnection(_connection):
         connection.execute("PRAGMA synchronous = normal")
         connection.execute("PRAGMA temp_store = memory")
         connection.execute("PRAGMA mmap_size = 30000000000")
+        connection.execute("PRAGMA busy_timeout = 5000")
 
     def _create_db_path(self):
         if not xbmcvfs.exists(os.path.dirname(self.path)):

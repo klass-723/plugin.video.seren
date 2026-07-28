@@ -984,6 +984,7 @@ class TraktSyncDatabase(trakt_sync.TraktSyncDatabase):
                              ON e.trakt_id = em.id
                          LEFT JOIN shows_meta AS sm
                              ON e.trakt_show_id = sm.id
+                WHERE e.watched > 0
                 ORDER BY e.last_watched_at DESC
                 LIMIT {self.page_limit} OFFSET {self.page_limit * (page - 1)}
                 """

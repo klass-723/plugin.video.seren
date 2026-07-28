@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.seren" version="3.0.62" name="Seren" provider-name="Nixgates">
+<addon id="plugin.video.seren" version="3.0.66" name="Seren" provider-name="Nixgates / Seren Maintained">
     <requires>
         <import addon="xbmc.addon" version="17.9.910" />
         <import addon="xbmc.python" version="3.0.0" />
@@ -24,10 +24,10 @@
         <platform>all</platform>
         <license>GNU GENERAL PUBLIC LICENSE. Version 3, 29 June 2007</license>
         <forum/>
-        <website>https://github.com/nixgates/plugin.video.seren</website>
-        <source>https://github.com/nixgates/plugin.video.seren</source>
+        <website>https://github.com/klass-723/plugin.video.seren</website>
+        <source>https://github.com/klass-723/plugin.video.seren</source>
         <disclaimer lang="en">
-            Last updated: November 29, 2024.
+            Last updated: July 28, 2026.
             The information contained within the Seren software (the "Service") is for general information purposes
             only.
             The author assumes no responsibility for errors, omissions in the contents on the Service, nor does it
@@ -65,6 +65,22 @@
             <screenshot>resources/screenshots/screenshot-04.jpg</screenshot>
         </assets>
         <news>
+            Changelog 3.0.66
+            [BUG] Fix Trakt watched and collection sync pagination
+            [BUG] Fix Trakt personal and liked list endpoints and paginated list loading
+            [BUG] Fix Trakt calendar date formatting and Discover pagination
+            [BUG] Fix watched movie and episode menus being hidden by Kodi watched filters
+            [BUG] Fix empty Trakt list and Finish Watching menus closing as errors
+            [BUG] Fix Trakt context menu list and playback history pagination
+            [BUG] Reduce log noise from missing optional studio image resources
+            [BUG] Improve SQLite database lock handling
+            [BUG] Fix menu icons being reused as stretched fanart
+            [PERFORMANCE] Seek to resume points earlier when playback starts
+            [FEATURE] Add watchlist sorting options
+            [FEATURE] Add option to limit Next Up episodes to the item limit
+            [FEATURE] Use final chapter info, when available, to time the Playing Next window
+            [FEATURE] Add watched progress item properties for skins
+
             Changelog 3.0.62
             [BUG] Optimised RD fix implementation
             [BUG] Improved RD season pack handling

@@ -298,6 +298,15 @@ class SerenPlayer(xbmc.Player):
         if self.playback_started:
             return
 
+        if g.get_bool_setting("playingnext.chapters"):
+            remaining_time = self._get_final_chapter_remaining_time()
+            if remaining_time and remaining_time > 5:
+                self.playing_next_time = min(self.playing_next_time, remaining_time)
+
+        if self.offset and not self.resumed:
+            self.seekTime(self.offset)
+            self.resumed = True
+
         self.playback_started = True
         self.playback_timestamp = time.time()
         self._running_path = self.getPlayingFile()
@@ -516,10 +525,6 @@ class SerenPlayer(xbmc.Player):
         self.total_time = self.getTotalTime()
         self.min_time_before_scrape = max(self.total_time * 0.2, self.min_time_before_scrape)
 
-        if self.offset and not self.resumed:
-            self.seekTime(self.offset)
-            self.resumed = True
-
         self._log_debug_information()
 
         while not g.wait_for_abort(0.5) and self._is_file_playing():  # This order is correct! Wait then check.
@@ -580,6 +585,20 @@ class SerenPlayer(xbmc.Player):
             return False
 
         return self.isPlayingVideo()
+
+    def _get_final_chapter_remaining_time(self):
+        try:
+            final_chapter = xbmc.getInfoLabel("Player.Chapters")
+            if not final_chapter:
+                return None
+
+            final_chapter = float(final_chapter.split(",")[-1])
+            duration = self.item_information["info"].get("duration")
+            if final_chapter >= 90 and duration:
+                return duration * (1 - final_chapter / 100)
+        except Exception:
+            g.log_stacktrace()
+        return None
 
 
 class PlayerDialogs(xbmc.Player):

@@ -1111,14 +1111,13 @@ class TraktSyncDatabase(Database):
         page_number = params.pop("page", 1)
 
         if pull_all:
-            get_method = self.trakt_api.get_json if ignore_cache and no_paging else self.trakt_api.get_json_cached
-            if ignore_cache and not no_paging and page_number == 1:
-                params['overwrite_cache'] = True
-            _handle_page(get_method(url, **params))
-            if len(result) >= (self.page_limit * page_number) and not no_paging:
-                return result[self.page_limit * (page_number - 1) : self.page_limit * page_number]
+            params.setdefault("limit", self.page_limit)
+            for page in self.trakt_api.get_all_pages_json(url, ignore_cache=ignore_cache, **params):
+                _handle_page(page)
+                if len(result) >= (self.page_limit * page_number) and not no_paging:
+                    return result[self.page_limit * (page_number - 1) : self.page_limit * page_number]
         else:
-            params["limit"] = params.pop("page", self.page_limit)
+            params.setdefault("limit", self.page_limit)
             for page in self.trakt_api.get_all_pages_json(url, ignore_cache=ignore_cache, **params):
                 _handle_page(page)
                 if len(result) >= (self.page_limit * page_number) and not no_paging:

@@ -1,3 +1,19 @@
+Changelog 3.0.66
+[BUG] Fix Trakt watched and collection sync pagination
+[BUG] Fix Trakt personal and liked list endpoints and paginated list loading
+[BUG] Fix Trakt calendar date formatting and Discover pagination
+[BUG] Fix watched movie and episode menus being hidden by Kodi watched filters
+[BUG] Fix empty Trakt list and Finish Watching menus closing as errors
+[BUG] Fix Trakt context menu list and playback history pagination
+[BUG] Reduce log noise from missing optional studio image resources
+[BUG] Improve SQLite database lock handling
+[BUG] Fix menu icons being reused as stretched fanart
+[PERFORMANCE] Seek to resume points earlier when playback starts
+[FEATURE] Add watchlist sorting options
+[FEATURE] Add option to limit Next Up episodes to the item limit
+[FEATURE] Use final chapter info, when available, to time the Playing Next window
+[FEATURE] Add watched progress item properties for skins
+
 Changelog 3.0.62
 [BUG] Optimised RD fix implementation
 [BUG] Improved RD season pack handling

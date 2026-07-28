@@ -1168,12 +1168,12 @@ class GlobalVariables:
             item.setProperty("UnWatchedEpisodes", str(menu_item["unwatched_episodes"]))
         if "watched_episodes" in menu_item:
             item.setProperty("WatchedEpisodes", str(menu_item["watched_episodes"]))
-        if (
-            menu_item.get("episode_count", 0)
-            and menu_item.get("watched_episodes", 0)
-            and menu_item.get("episode_count", 0) == menu_item.get("watched_episodes", 0)
-        ):
-            info["playcount"] = 1
+        if menu_item.get("episode_count", 0) and menu_item.get("watched_episodes", 0):
+            if menu_item["episode_count"] == menu_item["watched_episodes"]:
+                info["playcount"] = 1
+            else:
+                watched_progress = int((float(menu_item["watched_episodes"]) / menu_item["episode_count"]) * 100)
+                item.setProperty("WatchedProgress", str(max(1, watched_progress)))
         if (
             menu_item.get("watched_episodes", 0) == 0
             and menu_item.get("episode_count", 0)
@@ -1198,8 +1198,12 @@ class GlobalVariables:
         ):
             params["resume"] = str(menu_item["resume_time"])
             item.setProperty("resumetime", str(menu_item["resume_time"]))
+            if info.get("duration"):
+                watched_progress = int((float(menu_item["resume_time"]) / info["duration"]) * 100)
+                item.setProperty("WatchedProgress", str(min(100, max(1, watched_progress))))
+        force_unwatched_display = params.pop("force_unwatched_display", False)
         if "play_count" in menu_item and menu_item.get("play_count") is not None:
-            info["playcount"] = menu_item["play_count"]
+            info["playcount"] = 0 if force_unwatched_display else menu_item["play_count"]
         if "air_date" in menu_item and menu_item.get("air_date") is not None:
             info["premiered"] = menu_item["air_date"]
             info["aired"] = menu_item["air_date"]
@@ -1331,7 +1335,7 @@ class GlobalVariables:
     def is_addon_visible(self):
         return xbmc.getInfoLabel('Container.PluginName') == "plugin.video.seren"
 
-    def cancel_directory(self):
+    def cancel_directory(self, succeeded=False):
         if g.FROM_WIDGET:
             g.add_directory_item(
                 g.get_language_string(284, addon=False),
@@ -1340,7 +1344,7 @@ class GlobalVariables:
             xbmcplugin.setContent(self.PLUGIN_HANDLE, g.CONTENT_MENU)
             xbmcplugin.endOfDirectory(self.PLUGIN_HANDLE, succeeded=True, cacheToDisc=False)
         else:
-            xbmcplugin.endOfDirectory(self.PLUGIN_HANDLE, succeeded=False, cacheToDisc=False)
+            xbmcplugin.endOfDirectory(self.PLUGIN_HANDLE, succeeded=succeeded, cacheToDisc=False)
 
     def read_all_text(self, file_path):
         try:
@@ -1447,10 +1451,22 @@ class GlobalVariables:
 
     @cached_property
     def studio_icons(self):
-        colored = {i[:-4] for i in xbmcvfs.listdir("resource://resource.images.studios.coloured")[1]}
-        white = {i[:-4] for i in xbmcvfs.listdir("resource://resource.images.studios.white")[1]}
+        colored = self._get_optional_studio_icons("resource.images.studios.coloured")
+        white = self._get_optional_studio_icons("resource.images.studios.white")
 
         return colored | white if (colored and white) else colored or white
+
+    def _get_optional_studio_icons(self, addon_id):
+        try:
+            xbmcaddon.Addon(id=addon_id)
+        except Exception:
+            return set()
+
+        try:
+            return {i[:-4] for i in xbmcvfs.listdir(f"resource://{addon_id}")[1]}
+        except Exception as exc:
+            self.log(f"Unable to load optional studio image resource '{addon_id}': {exc}", "debug")
+            return set()
 
     def create_url(self, base_url, params):
         if params is None:
@@ -1574,7 +1590,7 @@ class GlobalVariables:
             xbmc.executebuiltin(f"SetFocus({-(80 - setting_offset)})")
 
     def create_icon_dict(self, icon_slug, base_path, art_types=None):
-        keys = art_types or ['icon', 'poster', 'thumb', 'fanart']
+        keys = art_types or ['icon', 'poster', 'thumb']
         return {"art": dict.fromkeys(keys, f"{base_path}{icon_slug}.png")}
 
 

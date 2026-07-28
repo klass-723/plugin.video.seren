@@ -225,9 +225,21 @@ class TraktSyncDatabase(trakt_sync.TraktSyncDatabase):
             items.extend(paged_items)
         return {section: items}
 
+    def _get_all_sync_pages(self, endpoint, **params):
+        params.setdefault("ignore_cache", True)
+        params.setdefault("limit", 250)
+
+        items = []
+        for page in self.trakt_api.get_all_pages_json(endpoint, **params):
+            if page:
+                items.extend(page)
+
+        g.log(f"Fetched {len(items)} Trakt sync items from {endpoint}")
+        return items
+
     def _sync_watched_movies(self):
         try:
-            trakt_watched = self.trakt_api.get_json("/sync/watched/movies", extended="full")
+            trakt_watched = self._get_all_sync_pages("/sync/watched/movies", extended="full")
             if len(trakt_watched) == 0:
                 return
             self.insert_trakt_movies(trakt_watched)
@@ -245,7 +257,7 @@ class TraktSyncDatabase(trakt_sync.TraktSyncDatabase):
 
     def _sync_collection_movies(self):
         try:
-            trakt_collection = self.trakt_api.get_json("sync/collection/movies", extended="full")
+            trakt_collection = self._get_all_sync_pages("sync/collection/movies", extended="full")
             if len(trakt_collection) == 0:
                 return
             self.insert_trakt_movies(trakt_collection)
@@ -304,31 +316,39 @@ class TraktSyncDatabase(trakt_sync.TraktSyncDatabase):
     def sync_watched_episodes(self):
         try:
             get = MetadataHandler.get_trakt_info
-            trakt_watched = self.trakt_api.get_json("sync/watched/shows", extended="full")
+            trakt_watched = self._get_all_sync_pages("sync/watched/shows", extended="progress")
             if not trakt_watched:
                 return
             self.insert_trakt_shows(trakt_watched)
             self._mill_if_needed(trakt_watched, self._queue_with_progress)
+
+            watched_episodes = [
+                {
+                    "trakt_show_id": show.get("trakt_id"),
+                    "season": get(season, "season"),
+                    "episode": get(episode, "episode"),
+                    "last_watched_at": (
+                        get(episode, "last_watched_at")
+                        or get(season, "last_watched_at")
+                        or get(show, "last_watched_at")
+                    ),
+                    "watched": get(episode, "playcount", 1),
+                }
+                for show in trakt_watched
+                for season in get(show, "seasons", [])
+                for episode in get(season, "episodes", [])
+            ]
+            g.log(
+                f"Trakt watched shows sync processed {len(trakt_watched)} shows "
+                f"and {len(watched_episodes)} watched episodes"
+            )
 
             with self.create_temp_table(
                 "_episodes_watched",
                 ["trakt_show_id", "season", "episode", "last_watched_at", "watched"],
                 primary_key="trakt_show_id, season, episode",
             ) as temp_table:
-                temp_table.insert_data(
-                    [
-                        {
-                            "trakt_show_id": show.get("trakt_id"),
-                            "season": get(season, "season"),
-                            "episode": get(episode, "episode"),
-                            "last_watched_at": get(episode, "last_watched_at"),
-                            "watched": get(episode, "playcount"),
-                        }
-                        for show in trakt_watched
-                        for season in get(show, "seasons", [])
-                        for episode in get(season, "episodes", [])
-                    ]
-                )
+                temp_table.insert_data(watched_episodes)
 
                 self.execute_sql(
                     [
@@ -368,32 +388,36 @@ class TraktSyncDatabase(trakt_sync.TraktSyncDatabase):
     def sync_collection_episodes(self):
         try:
             get = MetadataHandler.get_trakt_info
-            trakt_collection = self.trakt_api.get_json("sync/collection/shows", extended="full")
+            trakt_collection = self._get_all_sync_pages("sync/collection/shows", extended="full")
             if not trakt_collection:
                 return
 
             self.insert_trakt_shows(trakt_collection)
             self._mill_if_needed(trakt_collection, self._queue_with_progress)
 
+            collected_episodes = [
+                {
+                    "trakt_show_id": show.get("trakt_id"),
+                    "season": get(season, "season"),
+                    "episode": get(episode, "episode"),
+                    "collected_at": get(episode, "collected_at"),
+                    "collected": get(episode, "collected", 1),
+                }
+                for show in trakt_collection
+                for season in get(show, "seasons", [])
+                for episode in get(season, "episodes", [])
+            ]
+            g.log(
+                f"Trakt collected shows sync processed {len(trakt_collection)} shows "
+                f"and {len(collected_episodes)} collected episodes"
+            )
+
             with self.create_temp_table(
                 "_episodes_collected",
                 ["trakt_show_id", "season", "episode", "collected_at", "collected"],
                 primary_key="trakt_show_id, season, episode",
             ) as temp_table:
-                temp_table.insert_data(
-                    [
-                        {
-                            "trakt_show_id": show.get("trakt_id"),
-                            "season": get(season, "season"),
-                            "episode": get(episode, "episode"),
-                            "collected_at": get(episode, "collected_at"),
-                            "collected": get(episode, "collected"),
-                        }
-                        for show in trakt_collection
-                        for season in get(show, "seasons", [])
-                        for episode in get(season, "episodes", [])
-                    ]
-                )
+                temp_table.insert_data(collected_episodes)
 
                 self.execute_sql(
                     [
@@ -446,8 +470,8 @@ class TraktSyncDatabase(trakt_sync.TraktSyncDatabase):
             self.insert_trakt_shows(i.get("show") for i in trakt_rated_seasons)
 
             def fetch_rated_episodes(rating):
-                return self.trakt_api.get_json(
-                    f"sync/ratings/episodes/{rating}", extended="full", no_paging=True, timeout=90
+                return self._get_all_sync_pages(
+                    f"sync/ratings/episodes/{rating}", extended="full", limit=50, timeout=90
                 )
 
             self._queue_with_progress(fetch_rated_episodes, [(i,) for i in range(1, 11)])
