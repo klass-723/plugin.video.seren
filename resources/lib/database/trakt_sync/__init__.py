@@ -1106,22 +1106,15 @@ class TraktSyncDatabase(Database):
             )
 
         no_paging = params.get("no_paging", False)
-        pull_all = params.pop("pull_all", False)
+        params.pop("pull_all", False)  # all requests paginate now; strip so it isn't sent to the API
         ignore_cache = params.pop("ignore_cache", False)
         page_number = params.pop("page", 1)
 
-        if pull_all:
-            params.setdefault("limit", self.page_limit)
-            for page in self.trakt_api.get_all_pages_json(url, ignore_cache=ignore_cache, **params):
-                _handle_page(page)
-                if len(result) >= (self.page_limit * page_number) and not no_paging:
-                    return result[self.page_limit * (page_number - 1) : self.page_limit * page_number]
-        else:
-            params.setdefault("limit", self.page_limit)
-            for page in self.trakt_api.get_all_pages_json(url, ignore_cache=ignore_cache, **params):
-                _handle_page(page)
-                if len(result) >= (self.page_limit * page_number) and not no_paging:
-                    return result[self.page_limit * (page_number - 1) : self.page_limit * page_number]
+        params.setdefault("limit", self.page_limit)
+        for page in self.trakt_api.get_all_pages_json(url, ignore_cache=ignore_cache, **params):
+            _handle_page(page)
+            if len(result) >= (self.page_limit * page_number) and not no_paging:
+                return result[self.page_limit * (page_number - 1) : self.page_limit * page_number]
 
         return result if no_paging else result[self.page_limit * (page_number - 1) :]
 

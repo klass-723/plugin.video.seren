@@ -126,3 +126,7 @@ thumbs.db
 .pytest_cache
 /userdata/
 *.psd
+
+# Local working notes and captures (never commit)
+chatgpt.md
+Screenshot*.png
