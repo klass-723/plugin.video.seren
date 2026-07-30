@@ -42,12 +42,17 @@ When Kodi asks whether to remove add-on data during an uninstall, choose `No` un
 
 Provider packages are separate from Seren. Updating Seren does not automatically replace or repair a provider package.
 
-To check providers:
+If you have no providers yet, the recommended package is [a4kScrapers](https://github.com/a4k-openproject/a4kScrapers) (actively maintained, self-updating):
+
+1. Open `Seren > Tools > Provider Tools > Install Package`.
+2. Choose to enter a web location and enter: `https://bit.ly/a4kScrapers`
+3. Confirm the install. Seren's provider auto-update (on by default) keeps it current from then on.
+
+To check providers later:
 
 1. Open `Seren > Tools > Provider Tools`.
 2. Use `Manage Provider Packages` to see installed packages.
-3. Use `Check For Updates` if your installed package supports updates.
-4. Use `Install Package` if no providers are installed.
+3. Use `Check For Updates` to update manually if needed.
 
 ## If Something Breaks
 
