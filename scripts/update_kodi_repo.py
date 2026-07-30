@@ -57,8 +57,11 @@ def main(packages_dir, new_seren_zip):
 def write_index(directory, title, entries):
     entries = [e for e in entries if e != "index.html"]
     links = "\n".join(f'<li><a href="{e}">{e}</a></li>' for e in entries)
+    description = ("Kodi repository for the maintained Seren fork - working Trakt sync and "
+                   "Real-Debrid fixes. Add this URL as a file manager source in Kodi.")
     with open(os.path.join(directory, "index.html"), "w") as f:
-        f.write(f"<!DOCTYPE html><html><head><title>{title}</title></head>"
+        f.write(f'<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">'
+                f'<title>{title}</title><meta name="description" content="{description}"></head>'
                 f"<body><h1>{title}</h1><ul>{links}</ul></body></html>\n")
 
 
