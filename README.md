@@ -5,9 +5,17 @@
 
 # Seren (plugin.video.seren) — maintained, Trakt working again
 
-**Seren is alive.** This maintained fork fixes the June 2026 Trakt API changes that broke sync, Next Up, watched history, and lists in every older Seren build ([details](https://github.com/trakt/trakt-api/discussions/775)) — plus pagination, calendar, and menu fixes throughout, with an auto-updating install repository.
+**Seren is alive.** This maintained fork fixes the June 2026 Trakt API changes that broke sync, Next Up, watched history, and lists in every older Seren build ([details](https://github.com/trakt/trakt-api/discussions/775)) — plus the earlier Real-Debrid playback fixes, pagination, calendar, and menu fixes throughout, with an auto-updating install repository.
 
 The original Seren add-on was created by Nixgates; this fork is based on bbviking's 3.0.x maintenance work, with MrSpongeHead's `extended=progress` finding carried in.
+
+## Problems this fork fixes
+
+- Trakt asks to re-authorize, then the sync or database rebuild finishes in a second with no data
+- Next Up is empty or errors, watched history and My Shows/My Movies menus are blank
+- Trakt personal lists and liked lists don't load
+- Real-Debrid playback failures on cached and uncached torrents (the 2026 RD fixes from bbviking's line are included)
+- Provider package installs silently corrupting with `ModuleNotFoundError` (Seren zip extractor bug, fixed here in 3.0.69)
 
 Seren is a multi-source addon for Kodi with the added ability to install custom provider modules. Unlike other Kodi addons which are generally built for a single service use, Seren allows users to connect to multiple online/offline services at once for their viewing with a single click.
 
@@ -20,8 +28,9 @@ Full instructions, including manual zip installs, are in [INSTALL.md](INSTALL.md
 ## Credits
 
 - Nixgates created the original Seren add-on.
-- bbviking maintained the 3.0.x fork this build is based on, including selected maintenance work carried into `3.0.66`.
+- bbviking maintained the 3.0.x fork this build is based on, including the Real-Debrid fixes and selected maintenance work carried into `3.0.66`.
 - Community Seren forks and testers, including MrSpongeHead's fork, helped identify Trakt compatibility issues reviewed while preparing this build.
+- [a4kScrapers](https://github.com/a4k-openproject/a4kScrapers) is the recommended provider package (see [INSTALL.md](INSTALL.md)); [minhgi's extended scraper pack](https://github.com/minhgi/repository.seren-scrapers) is a community option whose packaging also surfaced the zip extractor bug fixed in `3.0.69`.
 
 ## Contribution
 
