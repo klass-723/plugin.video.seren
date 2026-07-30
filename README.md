@@ -1,13 +1,13 @@
-[![Kodi version](https://img.shields.io/badge/kodi%20versions-19--20-blue)](https://kodi.tv/)
-[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-![CI](https://github.com/SerenKodi/SerenDevelopment/workflows/CI/badge.svg?branch=v2-Development)
-[![codecov](https://codecov.io/gh/SerenKodi/SerenDevelopment/branch/v2-Development/graph/badge.svg?token=LCX9WOPJ2M)](https://codecov.io/gh/SerenKodi/SerenDevelopment)
+[![Kodi version](https://img.shields.io/badge/kodi%20versions-19--21-blue)](https://kodi.tv/)
+[![CI](https://github.com/klass-723/plugin.video.seren/actions/workflows/ci.yml/badge.svg)](https://github.com/klass-723/plugin.video.seren/actions)
+[![Latest release](https://img.shields.io/github/v/release/klass-723/plugin.video.seren)](https://github.com/klass-723/plugin.video.seren/releases)
 [![License: GPL3](https://img.shields.io/badge/License-GPL3-yellow.svg)](https://opensource.org/licenses/GPL-3.0)
 
-# Seren (plugin.video.seren)
+# Seren (plugin.video.seren) — maintained, Trakt working again
 
-This repository is a maintained fork of Seren. The original Seren add-on was created by Nixgates; this fork is based on bbviking's 3.0.x maintenance work and carries compatibility fixes for current Kodi/Trakt use.
+**Seren is alive.** This maintained fork fixes the June 2026 Trakt API changes that broke sync, Next Up, watched history, and lists in every older Seren build ([details](https://github.com/trakt/trakt-api/discussions/775)) — plus pagination, calendar, and menu fixes throughout, with an auto-updating install repository.
+
+The original Seren add-on was created by Nixgates; this fork is based on bbviking's 3.0.x maintenance work, with MrSpongeHead's `extended=progress` finding carried in.
 
 Seren is a multi-source addon for Kodi with the added ability to install custom provider modules. Unlike other Kodi addons which are generally built for a single service use, Seren allows users to connect to multiple online/offline services at once for their viewing with a single click.
 
