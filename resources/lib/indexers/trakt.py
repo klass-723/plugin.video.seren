@@ -617,15 +617,7 @@ class TraktAPI(ApiBase):
         if response is None:
             return None
         try:
-            effective_sort_by = sort_by if sort_by is not None else response.headers.get("X-Sort-By")
-            effective_sort_how = sort_how if sort_how is not None else response.headers.get("X-Sort-How")
-            return self._handle_response(
-                self._try_sort(
-                    effective_sort_by,
-                    effective_sort_how,
-                    response.json(),
-                )
-            )
+            return self._handle_response(self._sort_response(response, sort_by, sort_how))
         except (ValueError, AttributeError) as e:
             g.log(
                 f"Failed to receive JSON from Trakt response - response: {response} - error - {e}",
@@ -724,15 +716,7 @@ class TraktAPI(ApiBase):
         for response in self._get_all_pages(get_method, url, **params):
             if not response:
                 return
-            effective_sort_by = sort_by if sort_by is not None else response.headers.get("X-Sort-By")
-            effective_sort_how = sort_how if sort_how is not None else response.headers.get("X-Sort-How")
-            yield self._handle_response(
-                self._try_sort(
-                    effective_sort_by,
-                    effective_sort_how,
-                    response.json(),
-                )
-            )
+            yield self._handle_response(self._sort_response(response, sort_by, sort_how))
 
     def get_all_pages_flat(self, url, **params):
         """
@@ -793,6 +777,14 @@ class TraktAPI(ApiBase):
         return user_details["username"]
 
     # region Sorting
+    def _sort_response(self, response, sort_by=None, sort_how=None):
+        # explicit overrides win; otherwise fall back to the sort trakt reports in the response headers
+        if sort_by is None:
+            sort_by = response.headers.get("X-Sort-By")
+        if sort_how is None:
+            sort_how = response.headers.get("X-Sort-How")
+        return self._try_sort(sort_by, sort_how, response.json())
+
     def _try_sort(self, sort_by, sort_how, items):
         if not items or not isinstance(items, (set, list)):
             return items
