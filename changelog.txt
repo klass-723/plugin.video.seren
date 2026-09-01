@@ -1,3 +1,7 @@
+Changelog 3.0.70
+[BUG] Fix Next Up crashing (UNIQUE constraint episodes.trakt_id) after watching, requiring a full resync
+[BUG] Render Next Up and mixed-episode menus from existing data if a Trakt refresh fails
+
 Changelog 3.0.69
 [BUG] Fix provider package installs corrupting when the zip root folder shares its name with inner directories
 

@@ -653,6 +653,27 @@ class TraktSyncDatabase(Database):
             for i in to_insert:
                 i["trakt_season_id"] = season_ids.get(f"{get(i, 'trakt_show_id')}-{get(i, 'season')}")
 
+        # Trakt sometimes reassigns an episode's trakt_id (show merges/renumbering). The upsert
+        # below resolves conflicts on (trakt_show_id, season, number) and then SETs trakt_id, which
+        # can collide with a different row still holding that trakt_id (the primary key) and raise
+        # "UNIQUE constraint failed: episodes.trakt_id", aborting Next Up until a full resync. Remove
+        # any stale row holding an incoming trakt_id under a different identity so the upsert is safe.
+        identity_keys = {
+            f"{i.get('trakt_id')}-{get(i, 'trakt_show_id')}-{get(i, 'season')}-{get(i, 'episode')}"
+            for i in to_insert
+            if i.get("trakt_id") is not None
+        }
+        if identity_keys:
+            incoming_ids = ",".join(str(i.get("trakt_id")) for i in to_insert if i.get("trakt_id") is not None)
+            key_list = ",".join(f"'{k}'" for k in identity_keys)
+            self.execute_sql(
+                f"""
+                DELETE FROM episodes
+                WHERE trakt_id IN ({incoming_ids})
+                  AND (trakt_id || '-' || trakt_show_id || '-' || season || '-' || number) NOT IN ({key_list})
+                """
+            )
+
         self.execute_sql(
             self.upsert_episode_query,
             (
