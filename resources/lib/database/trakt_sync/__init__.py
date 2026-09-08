@@ -658,6 +658,10 @@ class TraktSyncDatabase(Database):
         # can collide with a different row still holding that trakt_id (the primary key) and raise
         # "UNIQUE constraint failed: episodes.trakt_id", aborting Next Up until a full resync. Remove
         # any stale row holding an incoming trakt_id under a different identity so the upsert is safe.
+        # The delete and upsert MUST run atomically (execute_sql_atomic): if they committed on
+        # separate connections and the re-insert then lost a lock race with a concurrent watched
+        # sync, the delete would land alone and orphan the episodes, emptying Next Up.
+        statements = []
         identity_keys = {
             f"{i.get('trakt_id')}-{get(i, 'trakt_show_id')}-{get(i, 'season')}-{get(i, 'episode')}"
             for i in to_insert
@@ -666,42 +670,48 @@ class TraktSyncDatabase(Database):
         if identity_keys:
             incoming_ids = ",".join(str(i.get("trakt_id")) for i in to_insert if i.get("trakt_id") is not None)
             key_list = ",".join(f"'{k}'" for k in identity_keys)
-            self.execute_sql(
-                f"""
-                DELETE FROM episodes
-                WHERE trakt_id IN ({incoming_ids})
-                  AND (trakt_id || '-' || trakt_show_id || '-' || season || '-' || number) NOT IN ({key_list})
-                """
+            statements.append(
+                (
+                    f"""
+                    DELETE FROM episodes
+                    WHERE trakt_id IN ({incoming_ids})
+                      AND (trakt_id || '-' || trakt_show_id || '-' || season || '-' || number) NOT IN ({key_list})
+                    """,
+                    None,
+                )
             )
 
-        self.execute_sql(
-            self.upsert_episode_query,
+        statements.append(
             (
-                (
-                    i.get("trakt_id"),
-                    i.get("trakt_show_id"),
-                    i.get("trakt_season_id"),
-                    get(i, "playcount"),
-                    get(i, "collected"),
-                    g.validate_date(get(i, "aired")),
-                    g.validate_date(get(i, "dateadded")),
-                    get(i, "season"),
-                    get(i, "episode"),
-                    get(i, "tmdb_id"),
-                    get(i, "tvdb_id"),
-                    get(i, "imdb_id"),
-                    None,
-                    None,
-                    None,
-                    self._create_args(i),
-                    g.validate_date(get(i, "last_watched_at")),
-                    g.validate_date(get(i, "collected_at")),
-                    get(i, "user_rating"),
-                    self.trakt_api.meta_hash,
-                )
-                for i in to_insert
-            ),
+                self.upsert_episode_query,
+                [
+                    (
+                        i.get("trakt_id"),
+                        i.get("trakt_show_id"),
+                        i.get("trakt_season_id"),
+                        get(i, "playcount"),
+                        get(i, "collected"),
+                        g.validate_date(get(i, "aired")),
+                        g.validate_date(get(i, "dateadded")),
+                        get(i, "season"),
+                        get(i, "episode"),
+                        get(i, "tmdb_id"),
+                        get(i, "tvdb_id"),
+                        get(i, "imdb_id"),
+                        None,
+                        None,
+                        None,
+                        self._create_args(i),
+                        g.validate_date(get(i, "last_watched_at")),
+                        g.validate_date(get(i, "collected_at")),
+                        get(i, "user_rating"),
+                        self.trakt_api.meta_hash,
+                    )
+                    for i in to_insert
+                ],
+            )
         )
+        self.execute_sql_atomic(statements)
         self.save_to_meta_table(to_insert, "episodes", "trakt", "trakt_id")
         self._set_needs_update(episodes, "episodes")
 

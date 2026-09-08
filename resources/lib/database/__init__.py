@@ -145,6 +145,21 @@ class Database:
         with SQLiteConnection(self._db_file) as connection:
             return connection.execute_sql(query, data)
 
+    def execute_sql_atomic(self, statements):
+        """Run a sequence of (query, data) statements in a SINGLE transaction on one connection.
+        A failure (eg. the database being locked during a concurrent sync) rolls the whole
+        sequence back, so the table can never be left half-updated - notably a DELETE that
+        commits without its follow-up re-INSERT, which would orphan rows and empty menus."""
+        with SQLiteConnection(self._db_file) as connection:
+            with connection.transaction() as cursor:
+                for query, data in statements:
+                    if data is None:
+                        cursor.execute(query)
+                    elif isinstance(data, (list, types.GeneratorType)):
+                        cursor.executemany(query, data)
+                    else:
+                        cursor.execute(query, data)
+
     def create_temp_table(self, table_name, columns, primary_key=None):
         return TempTable(self, table_name, columns, primary_key)
 
