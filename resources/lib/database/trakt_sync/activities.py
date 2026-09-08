@@ -338,7 +338,16 @@ class TraktSyncDatabase(trakt_sync.TraktSyncDatabase):
 
                 self.execute_sql(
                     [
-                        "UPDATE episodes SET watched=0",
+                        # Only clear watched for shows this sync actually returned. A global
+                        # "UPDATE episodes SET watched=0" combined with an incomplete extended=progress
+                        # fetch (Trakt caps it at 100/page and it can time out) would silently wipe
+                        # watched history for shows whose pages didn't come back, emptying Next Up
+                        # ("We received no titles") until a full manual resync. Scoping the reset to
+                        # shows present in the response makes an incomplete fetch non-destructive.
+                        """
+                        UPDATE episodes SET watched=0
+                        WHERE trakt_show_id IN (SELECT DISTINCT trakt_show_id FROM _episodes_watched)
+                        """,
                         """
                         UPDATE episodes
                         SET (watched, last_watched_at) = (

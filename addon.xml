@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.seren" version="3.0.70" name="Seren" provider-name="Nixgates / bbviking / klass-723">
+<addon id="plugin.video.seren" version="3.0.71" name="Seren" provider-name="Nixgates / bbviking / klass-723">
     <requires>
         <import addon="xbmc.addon" version="17.9.910" />
         <import addon="xbmc.python" version="3.0.0" />
@@ -62,6 +62,9 @@
             <screenshot>resources/screenshots/screenshot-04.jpg</screenshot>
         </assets>
         <news>
+            Changelog 3.0.71
+            [BUG] Fix Next Up emptying ('We received no titles') after watching a show — the watched-shows sync no longer wipes watched history for shows missing from an incomplete extended=progress fetch
+
             Changelog 3.0.70
             [BUG] Fix Next Up crashing (UNIQUE constraint episodes.trakt_id) after watching, requiring a full resync
             [BUG] Render Next Up and mixed-episode menus from existing data if a Trakt refresh fails
