@@ -1,0 +1,109 @@
+name: Auto Release
+
+# Merge to master = new patch release. On every push to master (except the release
+# commit this workflow makes itself), bump the addon.xml patch version, tag it, build
+# the zip, publish a GitHub release, and push it to the Kodi repo so devices auto-update.
+#
+# NOTE: pushes made with GITHUB_TOKEN do not trigger further workflow runs, so this job
+# does the release+publish itself rather than relying on the tag to fire ci.yml.
+
+on:
+  push:
+    branches: [master]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: auto-release
+  cancel-in-progress: false
+
+jobs:
+  auto-release:
+    # Skip the workflow's own "Release Seren X.Y.Z" bump commit to avoid a loop.
+    if: ${{ !startsWith(github.event.head_commit.message, 'Release Seren') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Checks (syntax, lint, XML)
+        run: |
+          python -m compileall -q resources/lib seren.py service.py
+          pip install --quiet ruff
+          ruff check --select E9,F63,F7,F82 .
+          python - <<'PY'
+          import xml.etree.ElementTree as ET
+          for f in ("addon.xml", "resources/settings.xml"):
+              ET.parse(f)
+          print("XML OK")
+          PY
+
+      - name: Bump patch version
+        id: bump
+        run: |
+          python - <<'PY'
+          import re
+          x = open("addon.xml").read()
+          m = re.search(r'(<addon id="plugin.video.seren" version=")(\d+)\.(\d+)\.(\d+)(")', x)
+          new = f"{m.group(2)}.{m.group(3)}.{int(m.group(4)) + 1}"
+          x = x.replace(m.group(0), f"{m.group(1)}{new}{m.group(5)}", 1)
+          x = x.replace(
+              "        <news>\n",
+              f"        <news>\n            Changelog {new}\n            [MAINTENANCE] Changes from merged commits\n\n",
+              1,
+          )
+          open("addon.xml", "w").write(x)
+          c = open("changelog.txt").read()
+          open("changelog.txt", "w").write(
+              f"Changelog {new}\n[MAINTENANCE] Changes from merged commits\n\n" + c
+          )
+          import xml.etree.ElementTree as ET
+          ET.parse("addon.xml")
+          open("/tmp/newver", "w").write(new)
+          PY
+          echo "version=$(cat /tmp/newver)" >> "$GITHUB_OUTPUT"
+
+      - name: Commit, tag and push
+        run: |
+          VER="${{ steps.bump.outputs.version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add addon.xml changelog.txt
+          git commit -m "Release Seren ${VER}"
+          git tag "v${VER}"
+          git push origin master "v${VER}"
+
+      - name: Build zip and create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VER="${{ steps.bump.outputs.version }}"
+          git archive --prefix="plugin.video.seren/" -o "plugin.video.seren-${VER}.zip" "v${VER}"
+          awk '/^Changelog/{c++} c==1' changelog.txt > release-notes.txt
+          gh release create "v${VER}" "plugin.video.seren-${VER}.zip" \
+            --title "Seren ${VER}" --notes-file release-notes.txt
+
+      - name: Checkout Kodi repo
+        uses: actions/checkout@v4
+        with:
+          repository: klass-723/klass-723.github.io
+          ssh-key: ${{ secrets.PAGES_DEPLOY_KEY }}
+          path: pages
+
+      - name: Publish to Kodi repo
+        run: |
+          VER="${{ steps.bump.outputs.version }}"
+          python3 scripts/update_kodi_repo.py pages/packages "plugin.video.seren-${VER}.zip"
+          cd pages
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet && { echo "Kodi repo already current"; exit 0; }
+          git commit -m "Seren ${VER}"
+          git push
