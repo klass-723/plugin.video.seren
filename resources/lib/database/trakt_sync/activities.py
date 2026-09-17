@@ -230,13 +230,17 @@ class TraktSyncDatabase(trakt_sync.TraktSyncDatabase):
             if len(trakt_watched) == 0:
                 return
             self.insert_trakt_movies(trakt_watched)
-            self.execute_sql(
+            # Atomic wipe+repopulate so an interrupted repopulate can't leave watched cleared.
+            self.execute_sql_atomic(
                 [
-                    "UPDATE movies SET watched = 0",
-                    f"""
-                    UPDATE movies SET watched=1
-                    WHERE trakt_id IN ({','.join(str(i.get('trakt_id')) for i in trakt_watched)})
-                    """,
+                    ("UPDATE movies SET watched = 0", None),
+                    (
+                        f"""
+                        UPDATE movies SET watched=1
+                        WHERE trakt_id IN ({','.join(str(i.get('trakt_id')) for i in trakt_watched)})
+                        """,
+                        None,
+                    ),
                 ]
             )
         except Exception as e:
@@ -248,13 +252,17 @@ class TraktSyncDatabase(trakt_sync.TraktSyncDatabase):
             if len(trakt_collection) == 0:
                 return
             self.insert_trakt_movies(trakt_collection)
-            self.execute_sql(
+            # Atomic wipe+repopulate so an interrupted repopulate can't leave collected cleared.
+            self.execute_sql_atomic(
                 [
-                    "UPDATE movies SET collected=0",
-                    f"""
-                    UPDATE movies SET collected=1
-                    WHERE trakt_id IN ({','.join(str(i.get('trakt_id')) for i in trakt_collection)})
-                    """,
+                    ("UPDATE movies SET collected=0", None),
+                    (
+                        f"""
+                        UPDATE movies SET collected=1
+                        WHERE trakt_id IN ({','.join(str(i.get('trakt_id')) for i in trakt_collection)})
+                        """,
+                        None,
+                    ),
                 ]
             )
         except Exception as e:
@@ -336,35 +344,42 @@ class TraktSyncDatabase(trakt_sync.TraktSyncDatabase):
             ) as temp_table:
                 temp_table.insert_data(watched_episodes)
 
-                self.execute_sql(
+                # Only clear watched for shows this sync actually returned, and run the wipe+repopulate
+                # ATOMICALLY (execute_sql_atomic). Two things break Next Up otherwise: (1) a global reset
+                # combined with an incomplete extended=progress fetch (Trakt caps it 100/page, can time
+                # out) wipes shows whose pages didn't return - scoping to the response fixes that; and
+                # (2) the wipe and repopulate committing on separate transactions - if the repopulate is
+                # interrupted (Trakt throttle / DB lock) the wipe lands alone and watched is left at 0,
+                # emptying Next Up until a forced resync. One transaction rolls back cleanly on failure.
+                self.execute_sql_atomic(
                     [
-                        # Only clear watched for shows this sync actually returned. A global
-                        # "UPDATE episodes SET watched=0" combined with an incomplete extended=progress
-                        # fetch (Trakt caps it at 100/page and it can time out) would silently wipe
-                        # watched history for shows whose pages didn't come back, emptying Next Up
-                        # ("We received no titles") until a full manual resync. Scoping the reset to
-                        # shows present in the response makes an incomplete fetch non-destructive.
-                        """
-                        UPDATE episodes SET watched=0
-                        WHERE trakt_show_id IN (SELECT DISTINCT trakt_show_id FROM _episodes_watched)
-                        """,
-                        """
-                        UPDATE episodes
-                        SET (watched, last_watched_at) = (
-                            SELECT watched, last_watched_at
-                            FROM _episodes_watched
-                            WHERE _episodes_watched.trakt_show_id = episodes.trakt_show_id
-                                AND _episodes_watched.season = episodes.season
-                                AND _episodes_watched.episode = episodes.number
-                        )
-                        WHERE EXISTS(
-                            SELECT watched, last_watched_at
-                            FROM _episodes_watched
-                            WHERE _episodes_watched.trakt_show_id = episodes.trakt_show_id
-                                AND _episodes_watched.season = episodes.season
-                                AND _episodes_watched.episode = episodes.number
-                        )
-                        """,
+                        (
+                            """
+                            UPDATE episodes SET watched=0
+                            WHERE trakt_show_id IN (SELECT DISTINCT trakt_show_id FROM _episodes_watched)
+                            """,
+                            None,
+                        ),
+                        (
+                            """
+                            UPDATE episodes
+                            SET (watched, last_watched_at) = (
+                                SELECT watched, last_watched_at
+                                FROM _episodes_watched
+                                WHERE _episodes_watched.trakt_show_id = episodes.trakt_show_id
+                                    AND _episodes_watched.season = episodes.season
+                                    AND _episodes_watched.episode = episodes.number
+                            )
+                            WHERE EXISTS(
+                                SELECT watched, last_watched_at
+                                FROM _episodes_watched
+                                WHERE _episodes_watched.trakt_show_id = episodes.trakt_show_id
+                                    AND _episodes_watched.season = episodes.season
+                                    AND _episodes_watched.episode = episodes.number
+                            )
+                            """,
+                            None,
+                        ),
                     ]
                 )
 
@@ -415,26 +430,30 @@ class TraktSyncDatabase(trakt_sync.TraktSyncDatabase):
             ) as temp_table:
                 temp_table.insert_data(collected_episodes)
 
-                self.execute_sql(
+                # Atomic wipe+repopulate so an interrupted repopulate can't leave collected cleared.
+                self.execute_sql_atomic(
                     [
-                        "UPDATE episodes SET collected=0",
-                        """
-                        UPDATE episodes
-                        SET (collected, collected_at) = (
-                            SELECT collected, collected_at
-                            FROM _episodes_collected
-                            WHERE _episodes_collected.trakt_show_id = episodes.trakt_show_id
-                                AND _episodes_collected.season = episodes.season
-                                AND _episodes_collected.episode = episodes.number
-                        )
-                        WHERE EXISTS(
-                            SELECT collected, collected_at
-                            FROM _episodes_collected
-                            WHERE _episodes_collected.trakt_show_id = episodes.trakt_show_id
-                                AND _episodes_collected.season = episodes.season
-                                AND _episodes_collected.episode = episodes.number
-                        )
-                        """,
+                        ("UPDATE episodes SET collected=0", None),
+                        (
+                            """
+                            UPDATE episodes
+                            SET (collected, collected_at) = (
+                                SELECT collected, collected_at
+                                FROM _episodes_collected
+                                WHERE _episodes_collected.trakt_show_id = episodes.trakt_show_id
+                                    AND _episodes_collected.season = episodes.season
+                                    AND _episodes_collected.episode = episodes.number
+                            )
+                            WHERE EXISTS(
+                                SELECT collected, collected_at
+                                FROM _episodes_collected
+                                WHERE _episodes_collected.trakt_show_id = episodes.trakt_show_id
+                                    AND _episodes_collected.season = episodes.season
+                                    AND _episodes_collected.episode = episodes.number
+                            )
+                            """,
+                            None,
+                        ),
                     ]
                 )
 
