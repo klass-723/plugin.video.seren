@@ -294,6 +294,17 @@ class SerenPlayer(xbmc.Player):
 
     # endregion
 
+    def _apply_default_playback_speed(self):
+        """Apply the user's chosen default playback speed at playback start.
+
+        Uses Kodi's tempo control, which preserves audio pitch. 1.75x and 2x require
+        maxtempo=2.0 in advancedsettings.xml; otherwise Kodi clamps to its 1.55 default.
+        """
+        speed = {1: 1.25, 2: 1.5, 3: 1.75, 4: 2.0}.get(g.get_int_setting("general.playbackspeed"))
+        if speed:
+            xbmc.executebuiltin(f"PlayerControl(tempo({speed}))")
+            g.log(f"Applied default playback speed {speed}x", "debug")
+
     def _start_playback(self):
         if self.playback_started:
             return
@@ -310,6 +321,8 @@ class SerenPlayer(xbmc.Player):
         self.playback_started = True
         self.playback_timestamp = time.time()
         self._running_path = self.getPlayingFile()
+
+        self._apply_default_playback_speed()
 
         g.close_busy_dialog()
         g.close_all_dialogs()

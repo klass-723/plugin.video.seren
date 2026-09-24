@@ -3726,3 +3726,33 @@ msgstr "Use Last Chapter Info When Available"
 msgctxt "#30657"
 msgid "Limit Next Up Episodes"
 msgstr "Limit Next Up Episodes"
+
+#: /resources/settings.xml
+msgctxt "#30658"
+msgid "Default Playback Speed"
+msgstr "Default Playback Speed"
+
+#: /resources/settings.xml
+msgctxt "#30659"
+msgid "1.25x"
+msgstr "1.25x"
+
+#: /resources/settings.xml
+msgctxt "#30660"
+msgid "1.5x"
+msgstr "1.5x"
+
+#: /resources/settings.xml
+msgctxt "#30661"
+msgid "1.75x"
+msgstr "1.75x"
+
+#: /resources/settings.xml
+msgctxt "#30662"
+msgid "2x"
+msgstr "2x"
+
+#: /resources/settings.xml
+msgctxt "#30663"
+msgid "Normal"
+msgstr "Normal"
