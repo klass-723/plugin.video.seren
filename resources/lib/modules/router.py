@@ -579,7 +579,6 @@ def dispatch(params):
         myFiles.Menus().my_files_play(action_args)
 
     elif action == "forceTraktSync":
-        import xbmcgui
         from resources.lib.database.trakt_sync.activities import TraktSyncDatabase
 
         options = ["TV Shows", "Movies", "Both"]
