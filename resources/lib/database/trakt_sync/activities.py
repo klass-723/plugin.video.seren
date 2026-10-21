@@ -20,6 +20,8 @@ class TraktSyncDatabase(trakt_sync.TraktSyncDatabase):
         self.progress_dialog = None
         self.silent = True
         self.current_dialog_text = None
+        # When set to "tv" or "movie", sync_activities only processes that media type.
+        self._media_type = None
         self._sync_activities_list = [
             # (title, (remote, keys), local_activities_key, func)
             ("Hidden Shows", ("shows", "hidden_at"), "hidden_sync", self._sync_hidden),
@@ -102,16 +104,42 @@ class TraktSyncDatabase(trakt_sync.TraktSyncDatabase):
             self._update_last_activities_call()
             return remote_activities
 
+    # Activity record columns per media type (matched to _sync_activities_list keys).
+    _TV_ACTIVITY_KEYS = ("hidden_sync", "shows_watched", "shows_collected", "episodes_bookmarked", "shows_rated")
+    _MOVIE_ACTIVITY_KEYS = ("hidden_sync", "movies_watched", "movies_collected", "movies_bookmarked", "movies_rated")
+
+    def _reset_activity_records(self, media_type=None):
+        """
+        Reset the stored activity timestamps so the next sync re-pulls those sections, scoped to a media type.
+        media_type None resets everything (equivalent to the old full flush, minus the username).
+        """
+        if media_type == "tv":
+            keys = self._TV_ACTIVITY_KEYS
+        elif media_type == "movie":
+            keys = self._MOVIE_ACTIVITY_KEYS
+        else:
+            keys = tuple(dict.fromkeys(self._TV_ACTIVITY_KEYS + self._MOVIE_ACTIVITY_KEYS))
+        for key in keys:
+            self.execute_sql(f"UPDATE activities SET {key}=? WHERE sync_id=1", (self.base_date,))
+        self.execute_sql("UPDATE activities SET all_activities=? WHERE sync_id=1", (self.base_date,))
+        # Clear the fetch throttle so a user-initiated force sync is not skipped.
+        self.execute_sql("UPDATE activities SET last_activities_call=? WHERE sync_id=1", (0,))
+        self.refresh_activities()
+
     @stopwatch
-    def sync_activities(self, silent=False):
+    def sync_activities(self, silent=False, media_type=None, force=False):
         with GlobalLock("trakt.sync"):
 
+            self._media_type = media_type
             trakt_auth = g.get_setting("trakt.auth")
             update_time = str(self._get_datetime_now())
 
             if not trakt_auth:
                 g.log("TraktSync: No Trakt auth present, no sync will occur", "warning")
                 return
+
+            if force:
+                self._reset_activity_records(media_type)
 
             self.refresh_activities()
             remote_activities = self.fetch_remote_activities(silent)
@@ -120,7 +148,7 @@ class TraktSyncDatabase(trakt_sync.TraktSyncDatabase):
                 g.log("Activities Sync Failure: Unable to connect to Trakt or activities called too often", "error")
                 return True
 
-            if self.requires_update(remote_activities["all"], self.activities["all_activities"]):
+            if force or self.requires_update(remote_activities["all"], self.activities["all_activities"]):
                 try:
                     self._check_for_first_run(silent, trakt_auth)
                     self._do_sync_acitivites(remote_activities)
@@ -145,6 +173,11 @@ class TraktSyncDatabase(trakt_sync.TraktSyncDatabase):
     def _do_sync_acitivites(self, remote_activities):
         total_activities = len(self._sync_activities_list)
         for idx, activity in enumerate(self._sync_activities_list):
+
+            if self._media_type is not None:
+                section = activity[1][0] if activity[1] else None
+                if ("movie" if section == "movies" else "tv") != self._media_type:
+                    continue
 
             try:
                 update_time = str(self._get_datetime_now())

@@ -579,11 +579,15 @@ def dispatch(params):
         myFiles.Menus().my_files_play(action_args)
 
     elif action == "forceTraktSync":
+        import xbmcgui
         from resources.lib.database.trakt_sync.activities import TraktSyncDatabase
 
-        trakt_db = TraktSyncDatabase()
-        trakt_db.flush_activities()
-        trakt_db.sync_activities()
+        options = ["TV Shows", "Movies", "Both"]
+        selection = xbmcgui.Dialog().select(f"{g.ADDON_NAME}: Sync Trakt", options)
+        if selection == -1:
+            return
+        media_type = {0: "tv", 1: "movie", 2: None}[selection]
+        TraktSyncDatabase().sync_activities(media_type=media_type, force=True)
 
     elif action == "rebuildTraktDatabase":
         from resources.lib.database.trakt_sync import TraktSyncDatabase
