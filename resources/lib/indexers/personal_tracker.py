@@ -27,7 +27,8 @@ REQUEST_TIMEOUT = 30
 SYNC_IDENTITY_PREFIX = "personal-tracker:"
 
 _MIRRORED_PATHS = re.compile(
-    r"^(?:sync/(?:history|collection|watchlist|ratings)(?:/remove)?|scrobble/(?:start|pause|stop))$"
+    r"^(?:sync/(?:history|collection|watchlist|ratings)(?:/remove)?|users/hidden/[a-z_]+(?:/remove)?"
+    r"|scrobble/(?:start|pause|stop))$"
 )
 
 _SETTINGS = {

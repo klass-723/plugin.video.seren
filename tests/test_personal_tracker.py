@@ -310,10 +310,12 @@ class TestMirrorRules(unittest.TestCase):
         "sync/history", "sync/history/remove", "sync/collection", "sync/collection/remove",
         "sync/watchlist", "sync/watchlist/remove", "sync/ratings", "sync/ratings/remove",
         "scrobble/start", "scrobble/pause", "scrobble/stop", "/sync/history", "sync/history?extended=full",
+        "users/hidden/calendar", "users/hidden/progress_watched", "users/hidden/progress_watched/remove",
     ]
     NOT_MIRRORED = [
         "sync/playback/123", "oauth/token", "/oauth/token", "oauth/device/code", "oauth/revoke",
-        "users/hidden/calendar", "users/me/lists/1/items", "sync/history/extra", "sync/historyx", "scrobble/rewind",
+        "users/me/lists/1/items", "users/me/lists/1/items/remove", "users/hidden", "users/hidden/calendar/x",
+        "sync/history/extra", "sync/historyx", "scrobble/rewind",
         "sync/history/remove/x",
     ]
 
@@ -379,7 +381,7 @@ class TestMirroring(MirrorTestBase):
     def test_unlisted_paths_are_not_mirrored(self):
         api = trakt_api_with_session(201)
         with mock.patch.object(pt.threading, "Thread") as thread_cls:
-            api.post("users/hidden/calendar", {"shows": [{"ids": {"trakt": 1390}}]})
+            api.post("users/me/lists/1/items", {"shows": [{"ids": {"trakt": 1390}}]})
             api.post("oauth/revoke", {"token": "x"})
             api.delete_request("sync/playback/123")
         thread_cls.assert_not_called()
