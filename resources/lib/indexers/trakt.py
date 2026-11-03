@@ -29,6 +29,7 @@ TRAKT_STATUS_CODES = {
     404: "Not Found - method exists, but no record found",
     405: "Method Not Found - method doesn't exist",
     409: "Conflict - resource already created",
+    410: "Expired - the device code has expired, restart the authorization",
     412: "Precondition Failed - use application/json content type",
     422: "Unprocessable Entity - validation errors",
     423: "Locked User Account - Contact Trakt support",
@@ -180,6 +181,8 @@ class TraktAPI(ApiBase):
     auth_success_string = 30273
     auth_revoked_string = 30021
     auth_problem_string = 30340
+    auth_error_string = 30023
+    auth_unreachable_string = 30162
 
     # POST/DELETE timeout in seconds, None waits indefinitely as Trakt requests always have
     request_timeout = None
@@ -480,7 +483,7 @@ class TraktAPI(ApiBase):
         self.username = None
         response = self.post("oauth/device/code", data={"client_id": self.client_id})
         if response is None or not response.ok:
-            xbmcgui.Dialog().ok(g.ADDON_NAME, g.get_language_string(30162))
+            xbmcgui.Dialog().ok(g.ADDON_NAME, g.get_language_string(self.auth_unreachable_string))
             return
         try:
             response = response.json()
@@ -491,7 +494,7 @@ class TraktAPI(ApiBase):
             expiry = int(response["expires_in"])
             token_ttl = int(response["expires_in"])
         except (KeyError, ValueError):
-            xbmcgui.Dialog().ok(g.ADDON_NAME, g.get_language_string(30023))
+            xbmcgui.Dialog().ok(g.ADDON_NAME, g.get_language_string(self.auth_error_string))
             raise
 
         tools.copy2clip(user_code)
@@ -535,7 +538,7 @@ class TraktAPI(ApiBase):
         if response.status_code == 200:
             return self._auth_success(response)
         elif response.status_code in [404, 410]:
-            xbmcgui.Dialog().ok(g.ADDON_NAME, g.get_language_string(30023))
+            xbmcgui.Dialog().ok(g.ADDON_NAME, g.get_language_string(self.auth_error_string))
             return True
         elif response.status_code == 409:
             return True

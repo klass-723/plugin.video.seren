@@ -295,6 +295,8 @@ class PersonalTrackerAPI(TraktAPI):
     auth_success_string = 30677
     auth_revoked_string = 30678
     auth_problem_string = 30679
+    auth_error_string = 30682
+    auth_unreachable_string = 30683
     auth_reset_string = 30679
 
     mirrors_writes = False

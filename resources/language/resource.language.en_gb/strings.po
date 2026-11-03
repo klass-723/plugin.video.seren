@@ -3846,3 +3846,13 @@ msgstr "Enter a Personal Tracker server address first"
 msgctxt "#30681"
 msgid "Unable to authorize with Personal Tracker"
 msgstr "Unable to authorize with Personal Tracker"
+
+#: /resources/settings.xml
+msgctxt "#30682"
+msgid "Error while authorizing with Personal Tracker, please try again"
+msgstr "Error while authorizing with Personal Tracker, please try again"
+
+#: /resources/settings.xml
+msgctxt "#30683"
+msgid "Unable to contact the Personal Tracker server, please check the server address"
+msgstr "Unable to contact the Personal Tracker server, please check the server address"

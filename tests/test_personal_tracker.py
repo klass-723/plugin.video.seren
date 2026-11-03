@@ -87,6 +87,7 @@ class TrackerServer:
         self.requests = []
         self.delay = 0
         self.device_token_pending = 1
+        self.device_token_final_status = 200
         self.token_response = {"access_token": "new-token", "refresh_token": "new-refresh", "expires_in": 3600}
         self.username = "alice"
         self.valid_tokens = {"tracker-token", "new-token", "pasted-token"}
@@ -133,6 +134,8 @@ class TrackerServer:
                     if server.device_token_pending > 0:
                         server.device_token_pending -= 1
                         return self._reply(400, {})
+                    if server.device_token_final_status != 200:
+                        return self._reply(server.device_token_final_status, {})
                     return self._reply(200, server.token_response)
                 if endpoint == "oauth/token":
                     if (body or {}).get("grant_type") != "refresh_token":
@@ -635,6 +638,14 @@ class TestSignIn(unittest.TestCase):
         self.assertEqual(len(self.dialog_messages()), 1, "only the success dialog")
         self.assertIn("#30677", self.dialog_messages()[0])
         self.assertEqual(g.settings["personal_tracker.username"], "alice")
+
+    def test_expired_code_names_the_tracker(self):
+        # Seen on a device: the expiry message said "Error while authenticating with Trakt"
+        self.server.device_token_final_status = 410
+        pt.PersonalTrackerAPI().auth()
+        self.assertEqual(self.dialog_messages(), ["#30682 {}"])
+        self.assertFalse(g.settings.get("personal_tracker.username"))
+        self.assertFalse(g.settings.get("personal_tracker.auth"))
 
     def test_trakt_endpoint_matching_unchanged(self):
         api = trakt.TraktAPI(trakt_only=True)
