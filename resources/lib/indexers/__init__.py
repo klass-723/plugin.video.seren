@@ -18,17 +18,19 @@ def trakt_auth_guard(func):
         :param kwargs: method kwargs
         :return: method results
         """
-        if g.get_setting("trakt.auth"):
+        from resources.lib.indexers.personal_tracker import trakt_auth_present
+
+        if trakt_auth_present():
             return func(*args, **kwargs)
         with GlobalLock("trakt.auth_guard"):
-            if not g.get_setting("trakt.auth"):
+            if not trakt_auth_present():
                 if xbmcgui.Dialog().yesno(g.ADDON_NAME, g.get_language_string(30471)):
                     from resources.lib.indexers.trakt import TraktAPI
 
                     TraktAPI().auth()
                 else:
                     g.cancel_directory()
-        if g.get_setting("trakt.auth"):
+        if trakt_auth_present():
             return func(*args, **kwargs)
         else:
             g.cancel_directory()

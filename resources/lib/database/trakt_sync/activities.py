@@ -5,6 +5,7 @@ import xbmcgui
 
 from resources.lib.database import trakt_sync
 from resources.lib.database.trakt_sync import hidden
+from resources.lib.indexers import personal_tracker
 from resources.lib.modules.exceptions import ActivitySyncFailure
 from resources.lib.modules.global_lock import GlobalLock
 from resources.lib.modules.globals import g
@@ -131,12 +132,14 @@ class TraktSyncDatabase(trakt_sync.TraktSyncDatabase):
         with GlobalLock("trakt.sync"):
 
             self._media_type = media_type
-            trakt_auth = g.get_setting("trakt.auth")
+            trakt_auth = personal_tracker.active_auth_token()
             update_time = str(self._get_datetime_now())
 
             if not trakt_auth:
                 g.log("TraktSync: No Trakt auth present, no sync will occur", "warning")
                 return
+
+            self._switch_sync_identity_if_required()
 
             if force:
                 self._reset_activity_records(media_type)
@@ -203,6 +206,17 @@ class TraktSyncDatabase(trakt_sync.TraktSyncDatabase):
                 g.log(f"Failed to sync activity: {activity[0]} - {e}")
                 self.sync_errors = True
                 continue
+
+    def _switch_sync_identity_if_required(self):
+        # Moving between Trakt and a Personal Tracker that replaces it: their ids differ, so start from scratch
+        identity = personal_tracker.sync_identity_mismatch(self.activities["trakt_username"])
+        if identity is None:
+            return
+        g.log(f"TraktSync: sync account changed to {identity!r}, rebuilding sync database")
+        self.rebuild_database()
+        self.set_base_activities()
+        self.set_trakt_user(identity)
+        self.refresh_activities()
 
     def _check_for_first_run(self, silent, trakt_auth):
         if not silent and str(self.activities["all_activities"]) == self.base_date and trakt_auth is not None:

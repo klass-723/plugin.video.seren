@@ -2,7 +2,6 @@ import contextlib
 import time
 from functools import cached_property
 from functools import wraps
-from urllib import parse
 
 import xbmc
 import xbmcgui
@@ -46,17 +45,25 @@ TRAKT_STATUS_CODES = {
 }
 
 
-def _log_connection_error(args, kwarg, e):
-    g.log(f"Connection Error to Trakt: {args} - {kwarg}", "error")
+def _join_url(base, path):
+    """
+    Joins a base address and an endpoint with exactly one slash.
+    Unlike urljoin this keeps any path on the base address (eg. https://example.com/tracker/)
+    """
+    return f"{base.rstrip('/')}/{path.lstrip('/')}"
+
+
+def _log_connection_error(args, kwarg, e, service_name="Trakt"):
+    g.log(f"Connection Error to {service_name}: {args} - {kwarg}", "error")
     g.log(e, "error")
 
 
-def _connection_failure_dialog():
+def _connection_failure_dialog(service_name="Trakt"):
     if (
         g.get_float_setting("general.trakt.failure.timeout") + (2 * 60 * (60 * 60)) < time.time()
         and not xbmc.Player().isPlaying()
     ):
-        xbmcgui.Dialog().notification(g.ADDON_NAME, g.get_language_string(30024).format("Trakt"))
+        xbmcgui.Dialog().notification(g.ADDON_NAME, g.get_language_string(30024).format(service_name))
         g.set_setting("general.trakt.failure.timeout", str(time.time()))
 
 
@@ -92,15 +99,15 @@ def trakt_guard_response(func):
             if response.status_code in [200, 201, 204]:
                 return response
 
-            if response.status_code == 400 and response.url == "https://api.trakt.tv/oauth/device/token":
+            if response.status_code == 400 and response.url == method_class._url("oauth/device/token"):
                 return response
-            if response.status_code == 400 and response.url == "https://api.trakt.tv/oauth/token":
-                _reset_trakt_auth()
-                raise AuthFailure("Unable to refresh Trakt auth")
+            if response.status_code == 400 and response.url == method_class._url("oauth/token"):
+                method_class._reset_auth()
+                raise AuthFailure(f"Unable to refresh {method_class.service_name} auth")
 
             if response.status_code == 403:
-                g.log("Trakt: invalid API key or unapproved app, resetting auth", "error")
-                _reset_trakt_auth()
+                g.log(f"{method_class.service_name}: invalid API key or unapproved app, resetting auth", "error")
+                method_class._reset_auth()
                 g.cancel_directory()
                 return None
 
@@ -108,18 +115,23 @@ def trakt_guard_response(func):
                 import inspect
 
                 if inspect.stack(1)[1][3] == "try_refresh_token":
-                    xbmcgui.Dialog().notification(g.ADDON_NAME, g.get_language_string(30340))
+                    xbmcgui.Dialog().notification(g.ADDON_NAME, g.get_language_string(method_class.auth_problem_string))
                     g.log(
-                        "Attempts to refresh Trakt token have failed. User intervention is required",
+                        f"Attempts to refresh {method_class.service_name} token have failed. "
+                        "User intervention is required",
                         "error",
                     )
                 else:
                     with contextlib.suppress(RanOnceAlready):
-                        with GlobalLock("trakt.oauth", run_once=True, check_sum=method_class.access_token):
+                        with GlobalLock(
+                            f"{method_class.lock_name}.oauth", run_once=True, check_sum=method_class.access_token
+                        ):
                             if method_class.refresh_token is not None:
                                 method_class.try_refresh_token(True)
                             if method_class.refresh_token is None and method_class.username is not None:
-                                xbmcgui.Dialog().ok(g.ADDON_NAME, g.get_language_string(30340))
+                                xbmcgui.Dialog().ok(
+                                    g.ADDON_NAME, g.get_language_string(method_class.auth_problem_string)
+                                )
                     if method_class.refresh_token is not None:
                         return func(*args, **kwargs)
 
@@ -131,7 +143,7 @@ def trakt_guard_response(func):
                 )
 
             g.log(
-                f"Trakt returned a {response.status_code} "
+                f"{method_class.service_name} returned a {response.status_code} "
                 f"({TRAKT_STATUS_CODES.get(response.status_code, '*Unknown status code*')}): "
                 f"while requesting {response.url}",
                 "error",
@@ -139,11 +151,11 @@ def trakt_guard_response(func):
 
             return response
         except requests.exceptions.ConnectionError as e:
-            _log_connection_error(args, kwargs, e)
+            _log_connection_error(args, kwargs, e, method_class.service_name)
             raise
         except Exception as e:
-            _connection_failure_dialog()
-            _log_connection_error(args, kwargs, e)
+            _connection_failure_dialog(method_class.service_name)
+            _log_connection_error(args, kwargs, e, method_class.service_name)
             raise
 
     return wrapper
@@ -156,7 +168,23 @@ class TraktAPI(ApiBase):
 
     ApiUrl = "https://api.trakt.tv/"
 
+    service_name = "Trakt"
+    lock_name = "trakt"
+
     username_setting_key = "trakt.username"
+    auth_setting_keys = {"auth": "trakt.auth", "refresh": "trakt.refresh", "expires": "trakt.expires"}
+
+    # language string ids, overridden by PersonalTrackerAPI
+    auth_title_string = 30022
+    auth_success_string = 30273
+    auth_revoked_string = 30021
+    auth_problem_string = 30340
+
+    # POST/DELETE timeout in seconds, None waits indefinitely as Trakt requests always have
+    request_timeout = None
+
+    # Successful Trakt writes are copied to a Personal Tracker running alongside Trakt
+    mirrors_writes = True
 
     TranslationNormalization = [
         ("title", ("title", "originaltitle", "sorttitle"), None),
@@ -354,7 +382,16 @@ class TraktAPI(ApiBase):
 
     MetaCollections = ("movies", "shows", "seasons", "episodes", "cast")
 
-    def __init__(self):
+    def __new__(cls, *args, trakt_only=False, **kwargs):
+        # With a Personal Tracker set to replace Trakt every TraktAPI() talks to the tracker instead
+        if cls is TraktAPI and not trakt_only:
+            from resources.lib.indexers import personal_tracker
+
+            if personal_tracker.replaces_trakt():
+                cls = personal_tracker.PersonalTrackerAPI
+        return super().__new__(cls)
+
+    def __init__(self, trakt_only=False):
         self.access_token = None
         self.refresh_token = None
         self.token_expires = 0
@@ -390,6 +427,9 @@ class TraktAPI(ApiBase):
         session.mount("https://", HTTPAdapter(max_retries=retries, pool_maxsize=100))
         return session
 
+    def _url(self, url):
+        return _join_url(self.ApiUrl, url)
+
     # region Auth
     def _get_headers(self):
         headers = {
@@ -411,12 +451,21 @@ class TraktAPI(ApiBase):
         if self.access_token:
             url = "oauth/revoke"
             self.post(url, post_data)
-        _reset_trakt_auth(notify=False)
+        self._reset_auth(notify=False)
         self.access_token = None
         self.refresh_token = None
         self.token_expires = 0
         self.username = None
-        xbmcgui.Dialog().ok(g.ADDON_NAME, g.get_language_string(30021))
+        xbmcgui.Dialog().ok(g.ADDON_NAME, g.get_language_string(self.auth_revoked_string))
+
+    def _reset_auth(self, notify=True):
+        _reset_trakt_auth(notify)
+
+    def _verification_url(self, device_code_response):
+        return "https://trakt.tv/activate"
+
+    def _auth_completed(self):
+        return True
 
     def auth(self):
         """
@@ -425,11 +474,12 @@ class TraktAPI(ApiBase):
         """
         self.username = None
         response = self.post("oauth/device/code", data={"client_id": self.client_id})
-        if not response.ok:
+        if response is None or not response.ok:
             xbmcgui.Dialog().ok(g.ADDON_NAME, g.get_language_string(30162))
             return
         try:
             response = response.json()
+            verification_url = self._verification_url(response)
             user_code = response["user_code"]
             device = response["device_code"]
             interval = int(response["interval"])
@@ -444,9 +494,9 @@ class TraktAPI(ApiBase):
         try:
             progress_dialog = xbmcgui.DialogProgress()
             progress_dialog.create(
-                f"{g.ADDON_NAME}: {g.get_language_string(30022)}",
+                f"{g.ADDON_NAME}: {g.get_language_string(self.auth_title_string)}",
                 tools.create_multiline_message(
-                    line1=g.get_language_string(30018).format(g.color_string("https://trakt.tv/activate")),
+                    line1=g.get_language_string(30018).format(g.color_string(verification_url)),
                     line2=g.get_language_string(30019).format(g.color_string(user_code)),
                     line3=g.get_language_string(30047),
                 ),
@@ -464,8 +514,8 @@ class TraktAPI(ApiBase):
         finally:
             del progress_dialog
 
-        if not failed:
-            xbmcgui.Dialog().ok(g.ADDON_NAME, g.get_language_string(30273))
+        if not failed and self._auth_completed():
+            xbmcgui.Dialog().ok(g.ADDON_NAME, g.get_language_string(self.auth_success_string))
             self._sync_trakt_user_data_if_required()
 
     def _auth_poll(self, device):
@@ -496,15 +546,24 @@ class TraktAPI(ApiBase):
         g.set_setting(self.username_setting_key, username)
         return False
 
+    def _sync_identity(self):
+        """
+        Who the local sync database belongs to, or None when this account does not own it
+        """
+        return self.username
+
     def _sync_trakt_user_data_if_required(self):
         # Synchronise Trakt Database with new user
         from resources.lib.database.trakt_sync import activities
 
+        identity = self._sync_identity()
+        if identity is None:
+            return
         database = activities.TraktSyncDatabase()
-        if database.activities["trakt_username"] != self.username:
+        if database.activities["trakt_username"] != identity:
             database.clear_user_information(bool(database.activities["trakt_username"]))
             database.flush_activities(False)
-            database.set_trakt_user(self.username)
+            database.set_trakt_user(identity)
             xbmc.executebuiltin(f'RunPlugin("{g.BASE_URL}?action=syncTraktActivities")')
 
     def try_refresh_token(self, force=False):
@@ -520,8 +579,9 @@ class TraktAPI(ApiBase):
 
         try:
             with GlobalLock(self.__class__.__name__, True, self.access_token):
-                g.log("Trakt Token requires refreshing...")
-                response = self.post(
+                g.log(f"{self.service_name} Token requires refreshing...")
+                # _post rather than post: trakt_guard_response checks for this method as its caller
+                response = self._post(
                     "/oauth/token",
                     {
                         "refresh_token": self.refresh_token,
@@ -532,7 +592,7 @@ class TraktAPI(ApiBase):
                     },
                 ).json()
                 self._save_settings(response)
-                g.log("Refreshed Trakt Token")
+                g.log(f"Refreshed {self.service_name} Token")
         except RanOnceAlready:
             self._load_settings()
             return
@@ -542,13 +602,13 @@ class TraktAPI(ApiBase):
     # region settings
     def _save_settings(self, response):
         if "access_token" in response:
-            g.set_setting("trakt.auth", response["access_token"])
+            g.set_setting(self.auth_setting_keys["auth"], response["access_token"])
             self.access_token = response["access_token"]
         if "refresh_token" in response:
-            g.set_setting("trakt.refresh", response["refresh_token"])
+            g.set_setting(self.auth_setting_keys["refresh"], response["refresh_token"])
             self.refresh_token = response["refresh_token"]
         if "expires_in" in response and "created_at" in response:
-            g.set_setting("trakt.expires", str(response["created_at"] + response["expires_in"]))
+            g.set_setting(self.auth_setting_keys["expires"], str(response["created_at"] + response["expires_in"]))
             self.token_expires = float(response["created_at"] + response["expires_in"])
 
     def _load_settings(self):
@@ -580,7 +640,7 @@ class TraktAPI(ApiBase):
         self._try_add_default_paging(params)
         self._clean_params(params)
         return self.session.get(
-            parse.urljoin(self.ApiUrl, url),
+            self._url(url),
             params=params,
             headers=self._get_headers(),
             timeout=timeout,
@@ -740,7 +800,6 @@ class TraktAPI(ApiBase):
         """
         return self.get_json(url, **params)
 
-    @trakt_guard_response
     def post(self, url, data):
         """
         Performs a post request to the specified endpoint and returns response
@@ -748,7 +807,16 @@ class TraktAPI(ApiBase):
         :param data: POST Data to send to endpoint
         :return: requests response
         """
-        return self.session.post(parse.urljoin(self.ApiUrl, url), json=data, headers=self._get_headers())
+        response = self._post(url, data)
+        if self.mirrors_writes:
+            from resources.lib.indexers import personal_tracker
+
+            personal_tracker.mirror_write(url, data, response)
+        return response
+
+    @trakt_guard_response
+    def _post(self, url, data):
+        return self.session.post(self._url(url), json=data, headers=self._get_headers(), timeout=self.request_timeout)
 
     def post_json(self, url, data):
         """
@@ -766,7 +834,7 @@ class TraktAPI(ApiBase):
         :param url: URL endpoint to perform request to
         :return: requests response
         """
-        return self.session.delete(parse.urljoin(self.ApiUrl, url), headers=self._get_headers())
+        return self.session.delete(self._url(url), headers=self._get_headers(), timeout=self.request_timeout)
 
     def get_username(self):
         """

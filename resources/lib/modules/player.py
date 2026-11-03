@@ -13,6 +13,7 @@ import xbmcplugin
 from resources.lib.common import tools
 from resources.lib.database.trakt_sync import bookmark
 from resources.lib.indexers import trakt
+from resources.lib.indexers.personal_tracker import trakt_auth_present
 from resources.lib.modules import smartPlay
 from resources.lib.modules.globals import g
 
@@ -44,7 +45,7 @@ class SerenPlayer(xbmc.Player):
         )
         self.pre_scrape_enabled = g.get_bool_setting("smartPlay.preScrape")
         self.playing_next_time = g.get_int_setting("playingnext.time")
-        self.trakt_enabled = bool(g.get_setting("trakt.auth", ""))
+        self.trakt_enabled = trakt_auth_present()
         self._running_path = None
 
         # Flags

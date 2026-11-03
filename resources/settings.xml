@@ -229,6 +229,30 @@
 					<level>4</level>
 					<default>0</default>
 				</setting>
+				<setting id="personal_tracker.auth" type="string" help="">
+					<level>4</level>
+					<default/>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<control type="edit" format="string">
+						<heading/>
+					</control>
+				</setting>
+				<setting id="personal_tracker.refresh" type="string" help="">
+					<level>4</level>
+					<default/>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<control type="edit" format="string">
+						<heading/>
+					</control>
+				</setting>
+				<setting id="personal_tracker.expires" type="integer" help="">
+					<level>4</level>
+					<default>0</default>
+				</setting>
 				<setting id="rd.auth" type="string" help="">
 					<level>4</level>
 					<default/>
@@ -913,6 +937,144 @@
 					<dependencies>
 						<dependency type="visible">
 							<condition operator="!is" setting="trakt.username"/>
+						</dependency>
+					</dependencies>
+					<control type="button" format="action">
+						<close>true</close>
+					</control>
+				</setting>
+			</group>
+			<group id="7" label="30664">
+				<setting id="personal_tracker.enabled" type="boolean" label="30665" help="">
+					<level>0</level>
+					<default>false</default>
+					<control type="toggle"/>
+				</setting>
+				<setting id="personal_tracker.url" type="string" label="30666" help="">
+					<level>0</level>
+					<default/>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<dependencies>
+						<dependency type="visible">
+							<condition operator="is" setting="personal_tracker.enabled">true</condition>
+						</dependency>
+					</dependencies>
+					<control type="edit" format="string">
+						<heading>30666</heading>
+					</control>
+				</setting>
+				<setting id="personal_tracker.clientid" type="string" label="30667" help="">
+					<level>0</level>
+					<default/>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<dependencies>
+						<dependency type="visible">
+							<condition operator="is" setting="personal_tracker.enabled">true</condition>
+						</dependency>
+					</dependencies>
+					<control type="edit" format="string">
+						<heading>30667</heading>
+					</control>
+				</setting>
+				<setting id="personal_tracker.secret" type="string" label="30668" help="">
+					<level>0</level>
+					<default/>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<dependencies>
+						<dependency type="visible">
+							<condition operator="is" setting="personal_tracker.enabled">true</condition>
+						</dependency>
+					</dependencies>
+					<control type="edit" format="string">
+						<heading>30668</heading>
+					</control>
+				</setting>
+				<setting id="personal_tracker.mode" type="integer" label="30669" help="">
+					<level>0</level>
+					<default>0</default>
+					<constraints>
+						<options>
+							<option label="30670">0</option>
+							<option label="30671">1</option>
+						</options>
+					</constraints>
+					<dependencies>
+						<dependency type="visible">
+							<condition operator="is" setting="personal_tracker.enabled">true</condition>
+						</dependency>
+					</dependencies>
+					<control type="spinner" format="string"/>
+				</setting>
+				<setting id="personal_tracker.manual_token" type="string" label="30675" help="">
+					<level>3</level>
+					<default/>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<dependencies>
+						<dependency type="visible">
+							<condition operator="is" setting="personal_tracker.enabled">true</condition>
+						</dependency>
+					</dependencies>
+					<control type="edit" format="string">
+						<heading>30675</heading>
+					</control>
+				</setting>
+				<setting id="personal_tracker.authorize" type="action" label="30672" help="">
+					<level>0</level>
+					<data>RunPlugin(plugin://plugin.video.seren/?action=authPersonalTracker)</data>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<dependencies>
+						<dependency type="visible">
+							<and>
+								<condition operator="is" setting="personal_tracker.enabled">true</condition>
+								<condition operator="is" setting="personal_tracker.username"/>
+							</and>
+						</dependency>
+					</dependencies>
+					<control type="button" format="action">
+						<close>true</close>
+					</control>
+				</setting>
+				<setting id="personal_tracker.username" type="string" label="30673" help="">
+					<level>0</level>
+					<default/>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<enable>false</enable>
+					<dependencies>
+						<dependency type="visible">
+							<and>
+								<condition operator="is" setting="personal_tracker.enabled">true</condition>
+								<condition operator="!is" setting="personal_tracker.username"/>
+							</and>
+						</dependency>
+					</dependencies>
+					<control type="edit" format="string">
+						<heading>30673</heading>
+					</control>
+				</setting>
+				<setting id="personal_tracker.revoke" type="action" label="30674" help="">
+					<level>0</level>
+					<data>RunPlugin(plugin://plugin.video.seren/?action=revokePersonalTracker)</data>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<dependencies>
+						<dependency type="visible">
+							<and>
+								<condition operator="is" setting="personal_tracker.enabled">true</condition>
+								<condition operator="!is" setting="personal_tracker.username"/>
+							</and>
 						</dependency>
 					</dependencies>
 					<control type="button" format="action">

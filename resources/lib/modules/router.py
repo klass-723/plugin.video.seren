@@ -109,6 +109,18 @@ def dispatch(params):
         trakt.TraktAPI().revoke_auth()
         g.open_addon_settings(3, 5)
 
+    elif action == "authPersonalTracker":
+        from resources.lib.indexers import personal_tracker
+
+        personal_tracker.PersonalTrackerAPI().auth()
+        g.open_addon_settings(3, personal_tracker.settings_controls_before_personal_tracker() + 7)
+
+    elif action == "revokePersonalTracker":
+        from resources.lib.indexers import personal_tracker
+
+        personal_tracker.PersonalTrackerAPI().revoke_auth()
+        g.open_addon_settings(3, personal_tracker.settings_controls_before_personal_tracker() + 7)
+
     elif action == "getSources":
         from resources.lib.modules.smartPlay import SmartPlay
         from resources.lib.common import tools
@@ -247,9 +259,10 @@ def dispatch(params):
 
     elif action == "authRealDebrid":
         from resources.lib.debrid import real_debrid
+        from resources.lib.indexers.personal_tracker import settings_controls_before_premiumize
 
         real_debrid.RealDebrid().auth()
-        g.open_addon_settings(3, 27)
+        g.open_addon_settings(3, 27 + settings_controls_before_premiumize())
 
     elif action == "showsHome":
         from resources.lib.gui import tvshowMenus
@@ -678,9 +691,10 @@ def dispatch(params):
 
     elif action == "authAllDebrid":
         from resources.lib.debrid.all_debrid import AllDebrid
+        from resources.lib.indexers.personal_tracker import settings_controls_before_premiumize
 
         AllDebrid().auth()
-        g.open_addon_settings(3, 36)
+        g.open_addon_settings(3, 36 + settings_controls_before_premiumize())
 
     elif action == "checkSkinUpdates":
         from resources.lib.database.skinManager import SkinManager
@@ -689,9 +703,10 @@ def dispatch(params):
 
     elif action == "authPremiumize":
         from resources.lib.debrid.premiumize import Premiumize
+        from resources.lib.indexers.personal_tracker import settings_controls_before_premiumize
 
         Premiumize().auth()
-        g.open_addon_settings(3, 13)
+        g.open_addon_settings(3, 13 + settings_controls_before_premiumize())
 
     elif action == "testWindows":
         from resources.lib.gui.homeMenu import Menus

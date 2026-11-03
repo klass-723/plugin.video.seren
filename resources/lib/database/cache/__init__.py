@@ -349,12 +349,18 @@ def use_cache(cache_hours=12):
     """
 
     def _get_checksum(class_name, func_name):
-        relative_methods = {"TraktAPI": {"get_json_cached": ("item.limit",)}}
+        relative_methods = {
+            "TraktAPI": {"get_json_cached": ("item.limit",)},
+            "PersonalTrackerAPI": {
+                "get_json_cached": ("item.limit", "personal_tracker.url"),
+                "get_cached": ("personal_tracker.url",),
+            },
+        }
 
         settings = relative_methods.get(class_name, {}).get(func_name, [])
         checksum = ""
         for setting in settings:
-            checksum += g.get_setting(setting)
+            checksum += g.get_setting(setting) or ""
 
         return checksum
 
