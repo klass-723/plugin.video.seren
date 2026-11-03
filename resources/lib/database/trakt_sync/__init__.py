@@ -316,7 +316,7 @@ class TraktSyncDatabase(Database):
             self.clear_all_meta(False)
             self.set_base_activities()
 
-        self.notification_prefix = f"{g.ADDON_NAME}: Trakt"
+        self.notification_prefix = f"{g.ADDON_NAME}: {g.sync_service_name()}"
         self.hide_unaired = g.get_bool_setting("general.hideUnAired")
         self.hide_specials = g.get_bool_setting("general.hideSpecials")
         self.hide_watched = g.get_bool_setting("general.hideWatched")

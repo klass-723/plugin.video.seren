@@ -20,6 +20,7 @@ from unidecode import unidecode
 from resources.lib.common import tools
 from resources.lib.modules.settings_cache import PersistedSettingsCache
 from resources.lib.modules.settings_cache import RuntimeSettingsCache
+from resources.lib.modules import tracker_branding
 from resources.lib.third_party import pytz
 
 viewTypes = [
@@ -852,7 +853,25 @@ class GlobalVariables:
             text = self.ADDON.getLocalizedString(localization_id) if addon else xbmc.getLocalizedString(localization_id)
             self.LANGUAGE_CACHE.update({cache_id: text})
 
+        if addon and (branding := self.tracker_branding()):
+            text = tracker_branding.relabel(text, *branding)
         return text
+
+    def tracker_branding(self):
+        """
+        The Personal Tracker's display name and whether it replaces Trakt, or None while no tracker is enabled
+        :rtype: tuple[str, bool]|None
+        """
+        if self.SETTINGS_CACHE is None or not self.get_bool_setting(tracker_branding.ENABLED_SETTING):
+            return None
+        return tracker_branding.display_name(self), tracker_branding.replaces_trakt(self)
+
+    def sync_service_name(self):
+        """
+        "Trakt", or the Personal Tracker's name while it replaces Trakt
+        """
+        branding = self.tracker_branding()
+        return branding[0] if branding and branding[1] else "Trakt"
 
     def get_view_type(self, content_type):
         view_type = None
@@ -1591,6 +1610,8 @@ class GlobalVariables:
 
     def create_icon_dict(self, icon_slug, base_path, art_types=None):
         keys = art_types or ['icon', 'poster', 'thumb']
+        if base_path == self.ICONS_PATH and (branding := self.tracker_branding()):
+            icon_slug = tracker_branding.icon_slug(icon_slug, branding[1])
         return {"art": dict.fromkeys(keys, f"{base_path}{icon_slug}.png")}
 
 

@@ -861,6 +861,15 @@
 						<allowempty>true</allowempty>
 					</constraints>
 					<enable>false</enable>
+					<dependencies>
+						<dependency type="visible">
+							<or>
+								<condition operator="is" setting="personal_tracker.enabled">false</condition>
+								<condition operator="!is" setting="personal_tracker.mode">1</condition>
+								<condition operator="is" setting="personal_tracker.url"/>
+							</or>
+						</dependency>
+					</dependencies>
 					<control type="edit" format="string">
 						<heading>30130</heading>
 					</control>
@@ -873,7 +882,14 @@
 					</constraints>
 					<dependencies>
 						<dependency type="visible">
-							<condition operator="is" setting="trakt.username"/>
+							<and>
+								<condition operator="is" setting="trakt.username"/>
+								<or>
+									<condition operator="is" setting="personal_tracker.enabled">false</condition>
+									<condition operator="!is" setting="personal_tracker.mode">1</condition>
+									<condition operator="is" setting="personal_tracker.url"/>
+								</or>
+							</and>
 						</dependency>
 					</dependencies>
 					<control type="button" format="action">
@@ -885,7 +901,14 @@
 					<default>true</default>
 					<dependencies>
 						<dependency type="visible">
-							<condition operator="!is" setting="trakt.username"/>
+							<and>
+								<condition operator="!is" setting="trakt.username"/>
+								<or>
+									<condition operator="is" setting="personal_tracker.enabled">false</condition>
+									<condition operator="!is" setting="personal_tracker.mode">1</condition>
+									<condition operator="is" setting="personal_tracker.url"/>
+								</or>
+							</and>
 						</dependency>
 					</dependencies>
 					<control type="toggle"/>
@@ -902,6 +925,11 @@
 							<and>
 								<condition operator="!is" setting="trakt.username"/>
 								<condition operator="is" setting="trakt.scrobbling">true</condition>
+								<or>
+									<condition operator="is" setting="personal_tracker.enabled">false</condition>
+									<condition operator="!is" setting="personal_tracker.mode">1</condition>
+									<condition operator="is" setting="personal_tracker.url"/>
+								</or>
 							</and>
 						</dependency>
 					</dependencies>
@@ -921,6 +949,11 @@
 							<and>
 								<condition operator="!is" setting="trakt.username"/>
 								<condition operator="is" setting="trakt.scrobbling">true</condition>
+								<or>
+									<condition operator="is" setting="personal_tracker.enabled">false</condition>
+									<condition operator="!is" setting="personal_tracker.mode">1</condition>
+									<condition operator="is" setting="personal_tracker.url"/>
+								</or>
 							</and>
 						</dependency>
 					</dependencies>
@@ -936,7 +969,14 @@
 					</constraints>
 					<dependencies>
 						<dependency type="visible">
-							<condition operator="!is" setting="trakt.username"/>
+							<and>
+								<condition operator="!is" setting="trakt.username"/>
+								<or>
+									<condition operator="is" setting="personal_tracker.enabled">false</condition>
+									<condition operator="!is" setting="personal_tracker.mode">1</condition>
+									<condition operator="is" setting="personal_tracker.url"/>
+								</or>
+							</and>
 						</dependency>
 					</dependencies>
 					<control type="button" format="action">
@@ -963,6 +1003,21 @@
 					</dependencies>
 					<control type="edit" format="string">
 						<heading>30666</heading>
+					</control>
+				</setting>
+				<setting id="personal_tracker.name" type="string" label="30684" help="">
+					<level>0</level>
+					<default>Personal Tracker</default>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<dependencies>
+						<dependency type="visible">
+							<condition operator="is" setting="personal_tracker.enabled">true</condition>
+						</dependency>
+					</dependencies>
+					<control type="edit" format="string">
+						<heading>30684</heading>
 					</control>
 				</setting>
 				<setting id="personal_tracker.clientid" type="string" label="30667" help="">
@@ -2395,7 +2450,7 @@
 					</control>
 				</setting>
 			</group>
-			<group id="2" label="30215">
+			<group id="2" label="30685">
 				<setting id="traktdb.flush" type="action" label="30216" help="">
 					<level>0</level>
 					<data>RunPlugin(plugin://plugin.video.seren/?action=flushTraktActivities)</data>
@@ -2410,6 +2465,32 @@
 					<constraints>
 						<allowempty>true</allowempty>
 					</constraints>
+					<dependencies>
+						<dependency type="visible">
+							<or>
+								<condition operator="is" setting="personal_tracker.enabled">false</condition>
+								<condition operator="!is" setting="personal_tracker.mode">1</condition>
+								<condition operator="is" setting="personal_tracker.url"/>
+							</or>
+						</dependency>
+					</dependencies>
+					<control type="button" format="action"/>
+				</setting>
+				<setting id="traktdb.forceTracker" type="action" label="30686" help="">
+					<level>0</level>
+					<data>RunPlugin(plugin://plugin.video.seren/?action=forceTraktSync)</data>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<dependencies>
+						<dependency type="visible">
+							<and>
+								<condition operator="is" setting="personal_tracker.enabled">true</condition>
+								<condition operator="is" setting="personal_tracker.mode">1</condition>
+								<condition operator="!is" setting="personal_tracker.url"/>
+							</and>
+						</dependency>
+					</dependencies>
 					<control type="button" format="action"/>
 				</setting>
 				<setting id="traktdb.rebuild" type="action" label="30218" help="">
@@ -2745,6 +2826,15 @@
 					<constraints>
 						<allowempty>true</allowempty>
 					</constraints>
+					<dependencies>
+						<dependency type="visible">
+							<or>
+								<condition operator="is" setting="personal_tracker.enabled">false</condition>
+								<condition operator="!is" setting="personal_tracker.mode">1</condition>
+								<condition operator="is" setting="personal_tracker.url"/>
+							</or>
+						</dependency>
+					</dependencies>
 					<control type="edit" format="string">
 						<heading>30145</heading>
 					</control>
@@ -2755,6 +2845,15 @@
 					<constraints>
 						<allowempty>true</allowempty>
 					</constraints>
+					<dependencies>
+						<dependency type="visible">
+							<or>
+								<condition operator="is" setting="personal_tracker.enabled">false</condition>
+								<condition operator="!is" setting="personal_tracker.mode">1</condition>
+								<condition operator="is" setting="personal_tracker.url"/>
+							</or>
+						</dependency>
+					</dependencies>
 					<control type="edit" format="string">
 						<heading>30146</heading>
 					</control>

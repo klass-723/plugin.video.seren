@@ -13,6 +13,7 @@ import time
 from functools import cached_property
 
 from resources.lib.indexers.trakt import TraktAPI
+from resources.lib.modules import tracker_branding
 from resources.lib.modules.globals import g
 
 MODE_ALONGSIDE = 0
@@ -67,7 +68,7 @@ def access_token():
 
 
 def replaces_trakt():
-    return is_enabled() and mode() == MODE_INSTEAD
+    return tracker_branding.replaces_trakt(g)
 
 
 def mirrors_trakt():
@@ -116,7 +117,7 @@ def settings_controls_before_premiumize():
     """
     controls = 3  # separator, group title, enable toggle
     if g.get_bool_setting(_SETTINGS["enabled"]):
-        controls += 4  # server address, client id, client secret, mode
+        controls += 5  # server address, tracker name, client id, client secret, mode
         controls += 2 if _setting("username") else 1  # username + revoke, or authorize
     return controls
 
@@ -126,7 +127,9 @@ def settings_controls_before_personal_tracker():
     Number of settings dialog controls in the Accounts category ahead of the Personal Tracker group
     """
     controls = 5  # General title + notifications, separator + Trakt title, separator
-    if g.get_setting("trakt.username"):
+    if replaces_trakt():
+        pass  # the Trakt account settings are hidden
+    elif g.get_setting("trakt.username"):
         controls += 3  # username, scrobbling, revoke
         if g.get_bool_setting("trakt.scrobbling"):
             controls += 2  # ignore seconds at start, play count minimum percent
@@ -286,7 +289,6 @@ class PersonalTrackerAPI(TraktAPI):
     TraktAPI pointed at the user's Personal Tracker server, with its own credentials and tokens
     """
 
-    service_name = "Personal Tracker"
     lock_name = "personal_tracker"
 
     username_setting_key = _SETTINGS["username"]
@@ -301,6 +303,10 @@ class PersonalTrackerAPI(TraktAPI):
     auth_reset_string = 30679
 
     mirrors_writes = False
+
+    @property
+    def service_name(self):
+        return tracker_branding.display_name(g)
 
     def __init__(self, timeout=None, retries=True, **kwargs):
         self.request_timeout = timeout or REQUEST_TIMEOUT
