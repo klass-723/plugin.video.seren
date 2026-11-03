@@ -2,6 +2,7 @@ import contextlib
 import time
 from functools import cached_property
 from functools import wraps
+from urllib import parse
 
 import xbmc
 import xbmcgui
@@ -99,9 +100,9 @@ def trakt_guard_response(func):
             if response.status_code in [200, 201, 204]:
                 return response
 
-            if response.status_code == 400 and response.url == method_class._url("oauth/device/token"):
+            if response.status_code == 400 and method_class._is_endpoint(response.url, "oauth/device/token"):
                 return response
-            if response.status_code == 400 and response.url == method_class._url("oauth/token"):
+            if response.status_code == 400 and method_class._is_endpoint(response.url, "oauth/token"):
                 method_class._reset_auth()
                 raise AuthFailure(f"Unable to refresh {method_class.service_name} auth")
 
@@ -429,6 +430,10 @@ class TraktAPI(ApiBase):
 
     def _url(self, url):
         return _join_url(self.ApiUrl, url)
+
+    def _is_endpoint(self, response_url, endpoint):
+        # Compare paths only: requests normalises the scheme, host and port it reports back
+        return parse.urlsplit(response_url).path.rstrip("/") == parse.urlsplit(self._url(endpoint)).path
 
     # region Auth
     def _get_headers(self):

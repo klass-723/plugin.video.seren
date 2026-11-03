@@ -625,6 +625,23 @@ class TestSignIn(unittest.TestCase):
         self.assertIn("ABCD1234", dialog_text)
         self.assertIn("#30677", self.dialog_messages()[-1])
 
+    def test_pending_polls_are_quiet_whatever_the_address_case(self):
+        # requests reports a normalised URL back (lower case scheme and host), the pending 400 must still match
+        g.settings["personal_tracker.url"] = self.server.url.replace("http://", "HTTP://") + "/"
+        self.server.device_token_pending = 3
+        pt.PersonalTrackerAPI().auth()
+        self.assertEqual(len(self.server.find("oauth/device/token")), 4)
+        self.assertEqual(g.logs_at("error"), [])
+        self.assertEqual(len(self.dialog_messages()), 1, "only the success dialog")
+        self.assertIn("#30677", self.dialog_messages()[0])
+        self.assertEqual(g.settings["personal_tracker.username"], "alice")
+
+    def test_trakt_endpoint_matching_unchanged(self):
+        api = trakt.TraktAPI(trakt_only=True)
+        self.assertTrue(api._is_endpoint("https://api.trakt.tv/oauth/device/token", "oauth/device/token"))
+        self.assertTrue(api._is_endpoint("https://api.trakt.tv/oauth/token", "/oauth/token"))
+        self.assertFalse(api._is_endpoint("https://api.trakt.tv/oauth/device/token", "oauth/token"))
+
     def test_device_flow_then_refresh(self):
         pt.PersonalTrackerAPI().auth()
         self.server.token_response = {"access_token": "pasted-token", "refresh_token": "r2", "expires_in": 60}
