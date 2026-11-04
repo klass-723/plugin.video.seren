@@ -126,10 +126,10 @@ def settings_controls_before_personal_tracker():
     """
     Number of settings dialog controls in the Accounts category ahead of the Personal Tracker group
     """
-    controls = 5  # General title + notifications, separator + Trakt title, separator
     if replaces_trakt():
-        pass  # the Trakt account settings are hidden
-    elif g.get_setting("trakt.username"):
+        return 2  # General title + notifications; Kodi drops the Trakt groups once all their settings are hidden
+    controls = 5  # General title + notifications, separator + Trakt title, separator
+    if g.get_setting("trakt.username"):
         controls += 3  # username, scrobbling, revoke
         if g.get_bool_setting("trakt.scrobbling"):
             controls += 2  # ignore seconds at start, play count minimum percent

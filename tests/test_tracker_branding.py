@@ -163,6 +163,24 @@ class TestSettingsXml(unittest.TestCase):
         self.assertEqual(setting.get("id"), tb.NAME_SETTING)
 
 
+class TestSettingsOffsets(unittest.TestCase):
+    def test_trakt_settings_counted_when_trakt_in_use(self):
+        g.reset(**{"trakt.username": "someone", "trakt.scrobbling": "false"})
+        self.assertEqual(pt.settings_controls_before_personal_tracker(), 8)
+        g.reset()
+        self.assertEqual(pt.settings_controls_before_personal_tracker(), 7)
+
+    def test_trakt_groups_gone_while_replacing(self):
+        # checked on a Shield: with every Trakt account setting hidden, Kodi drops its title and separators too
+        g.reset(**{**INSTEAD, "trakt.username": "someone", "trakt.scrobbling": "true"})
+        self.assertEqual(pt.settings_controls_before_personal_tracker(), 2)
+
+    def test_tracker_name_counted_before_premiumize(self):
+        g.reset(**{**INSTEAD, "personal_tracker.username": "Klass7"})
+        # separator, title, toggle, address, name, client id, secret, mode, username, revoke
+        self.assertEqual(pt.settings_controls_before_premiumize(), 10)
+
+
 class TestStrings(unittest.TestCase):
     def test_new_strings_present(self):
         with open(STRINGS_PO, encoding="utf-8") as f:
