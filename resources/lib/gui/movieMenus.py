@@ -6,6 +6,7 @@ import xbmcgui
 
 from resources.lib.common import tools
 from resources.lib.indexers import trakt_auth_guard
+from resources.lib.indexers.personal_tracker import trakt_auth_present
 from resources.lib.modules.globals import g
 
 
@@ -73,7 +74,7 @@ class Menus:
             description=g.get_language_string(30396),
             menu_item=g.create_icon_dict("movies_recent", g.ICONS_PATH),
         )
-        if g.get_setting("trakt.auth"):
+        if trakt_auth_present():
             g.add_directory_item(
                 g.get_language_string(30005),
                 action="moviesRecommended",

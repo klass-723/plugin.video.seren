@@ -3756,3 +3756,103 @@ msgstr "2x"
 msgctxt "#30663"
 msgid "Normal"
 msgstr "Normal"
+
+#: /resources/settings.xml
+msgctxt "#30664"
+msgid "Personal Tracker"
+msgstr "Personal Tracker"
+
+#: /resources/settings.xml
+msgctxt "#30665"
+msgid "Enable Personal Tracker"
+msgstr "Enable Personal Tracker"
+
+#: /resources/settings.xml
+msgctxt "#30666"
+msgid "Server address"
+msgstr "Server address"
+
+#: /resources/settings.xml
+msgctxt "#30667"
+msgid "Client ID"
+msgstr "Client ID"
+
+#: /resources/settings.xml
+msgctxt "#30668"
+msgid "Client secret"
+msgstr "Client secret"
+
+#: /resources/settings.xml
+msgctxt "#30669"
+msgid "Mode"
+msgstr "Mode"
+
+#: /resources/settings.xml
+msgctxt "#30670"
+msgid "Alongside Trakt"
+msgstr "Alongside Trakt"
+
+#: /resources/settings.xml
+msgctxt "#30671"
+msgid "Instead of Trakt"
+msgstr "Instead of Trakt"
+
+#: /resources/settings.xml
+msgctxt "#30672"
+msgid "Authorize Personal Tracker..."
+msgstr "Authorize Personal Tracker..."
+
+#: /resources/settings.xml
+msgctxt "#30673"
+msgid "Username"
+msgstr "Username"
+
+#: /resources/settings.xml
+msgctxt "#30674"
+msgid "Revoke Personal Tracker Authentication..."
+msgstr "Revoke Personal Tracker Authentication..."
+
+#: /resources/settings.xml
+msgctxt "#30675"
+msgid "Access token (skips authorization)"
+msgstr "Access token (skips authorization)"
+
+#: /resources/settings.xml
+msgctxt "#30676"
+msgid "Authorize Personal Tracker"
+msgstr "Authorize Personal Tracker"
+
+#: /resources/settings.xml
+msgctxt "#30677"
+msgid "Successfully authenticated with Personal Tracker"
+msgstr "Successfully authenticated with Personal Tracker"
+
+#: /resources/settings.xml
+msgctxt "#30678"
+msgid "Personal Tracker Successfully Disconnected"
+msgstr "Personal Tracker Successfully Disconnected"
+
+#: /resources/settings.xml
+msgctxt "#30679"
+msgid "Personal Tracker authorization has expired, please authorize again"
+msgstr "Personal Tracker authorization has expired, please authorize again"
+
+#: /resources/settings.xml
+msgctxt "#30680"
+msgid "Enter a Personal Tracker server address first"
+msgstr "Enter a Personal Tracker server address first"
+
+#: /resources/settings.xml
+msgctxt "#30681"
+msgid "Unable to authorize with Personal Tracker"
+msgstr "Unable to authorize with Personal Tracker"
+
+#: /resources/settings.xml
+msgctxt "#30682"
+msgid "Error while authorizing with Personal Tracker, please try again"
+msgstr "Error while authorizing with Personal Tracker, please try again"
+
+#: /resources/settings.xml
+msgctxt "#30683"
+msgid "Unable to contact the Personal Tracker server, please check the server address"
+msgstr "Unable to contact the Personal Tracker server, please check the server address"

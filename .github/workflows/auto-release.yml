@@ -43,6 +43,8 @@ jobs:
               ET.parse(f)
           print("XML OK")
           PY
+          pip install --quiet requests
+          python -m unittest discover -s tests
 
       - name: Bump patch version
         id: bump
