@@ -2,12 +2,14 @@ import os
 import re
 import sys
 import unittest
+from unittest import mock
 from xml.etree import ElementTree
 
 sys.path.insert(0, os.path.dirname(__file__))
 import kodi_stubs  # noqa: E402  must come before resources.lib imports
 
 from resources.lib.indexers import personal_tracker as pt  # noqa: E402
+from resources.lib.indexers import trakt  # noqa: E402
 from resources.lib.modules import tracker_branding as tb  # noqa: E402
 
 g = kodi_stubs.g
@@ -179,6 +181,30 @@ class TestSettingsOffsets(unittest.TestCase):
         g.reset(**{**INSTEAD, "personal_tracker.username": "Klass7"})
         # separator, title, toggle, address, name, client id, secret, mode, username, revoke
         self.assertEqual(pt.settings_controls_before_premiumize(), 10)
+
+
+class _LockedSession:
+    def post(self, url, json=None, headers=None, timeout=None):
+        response = mock.Mock(status_code=423, url=url, ok=False, headers={})
+        return response
+
+
+class TestLockedAccountMessage(unittest.TestCase):
+    def setUp(self):
+        kodi_stubs.dialog.reset_mock()
+
+    def _locked_post(self, api):
+        api.__dict__["session"] = _LockedSession()
+        api._post("sync/history", {})
+        return kodi_stubs.dialog.notification.call_args[0][1]
+
+    def test_names_trakt_for_trakt(self):
+        g.reset()
+        self.assertEqual(self._locked_post(trakt.TraktAPI()), "Locked User Account - Contact Trakt support")
+
+    def test_names_the_tracker(self):
+        g.reset(**{**INSTEAD, "personal_tracker.name": "Tracker", "personal_tracker.auth": "token"})
+        self.assertEqual(self._locked_post(pt.PersonalTrackerAPI()), "Locked User Account - Contact Tracker support")
 
 
 class TestStrings(unittest.TestCase):

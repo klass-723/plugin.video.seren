@@ -595,7 +595,7 @@ def dispatch(params):
         from resources.lib.database.trakt_sync.activities import TraktSyncDatabase
 
         options = ["TV Shows", "Movies", "Both"]
-        selection = xbmcgui.Dialog().select(f"{g.ADDON_NAME}: Sync Trakt", options)
+        selection = xbmcgui.Dialog().select(f"{g.ADDON_NAME}: Sync {g.sync_service_name()}", options)
         if selection == -1:
             return
         media_type = {0: "tv", 1: "movie", 2: None}[selection]
