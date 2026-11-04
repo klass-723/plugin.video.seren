@@ -1816,8 +1816,8 @@ msgstr "Episodes Between Dialog Prompts"
 
 #: /resources/settings.xml:119
 msgctxt "#30324"
-msgid "Paginate Trakt Lists"
-msgstr "Paginate Trakt Lists"
+msgid "Paginate Lists"
+msgstr "Paginate Lists"
 
 #: /resources/lib/gui/tvshowMenus.py:274
 msgctxt "#30325"
@@ -2499,8 +2499,8 @@ msgstr ""
 
 #: /resources/settings.xml:124
 msgctxt "#30444"
-msgid "Paginate Trakt Collection"
-msgstr "Paginate Trakt Collection"
+msgid "Paginate Collection"
+msgstr "Paginate Collection"
 
 #: /resources/settings.xml:59
 msgctxt "#30445"
@@ -3366,8 +3366,8 @@ msgstr "Episode Menus"
 
 #: /resources/settings.xml:91
 msgctxt "#30593"
-msgid "Trakt Menus"
-msgstr "Trakt Menus"
+msgid "Lists & Collection"
+msgstr "Lists & Collection"
 
 #: /resources/settings.xml:163
 msgctxt "#30594"
@@ -3856,3 +3856,18 @@ msgstr "Error while authorizing with Personal Tracker, please try again"
 msgctxt "#30683"
 msgid "Unable to contact the Personal Tracker server, please check the server address"
 msgstr "Unable to contact the Personal Tracker server, please check the server address"
+
+#: /resources/settings.xml
+msgctxt "#30684"
+msgid "Tracker name"
+msgstr "Tracker name"
+
+#: /resources/settings.xml
+msgctxt "#30685"
+msgid "Sync Tools"
+msgstr "Sync Tools"
+
+#: /resources/settings.xml
+msgctxt "#30686"
+msgid "Force a sync now"
+msgstr "Force a sync now"

@@ -138,11 +138,9 @@ def trakt_guard_response(func):
                         return func(*args, **kwargs)
 
             if response.status_code == 423:
-                xbmcgui.Dialog().notification(g.ADDON_NAME, TRAKT_STATUS_CODES.get(response.status_code))
-                g.log(
-                    "Locked User Account - Contact Trakt support",
-                    "error",
-                )
+                locked_message = f"Locked User Account - Contact {method_class.service_name} support"
+                xbmcgui.Dialog().notification(g.ADDON_NAME, locked_message)
+                g.log(locked_message, "error")
 
             g.log(
                 f"{method_class.service_name} returned a {response.status_code} "

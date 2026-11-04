@@ -225,7 +225,7 @@ class TraktSyncDatabase(trakt_sync.TraktSyncDatabase):
             xbmc.sleep(500)
             self.silent = False
             self.progress_dialog = xbmcgui.DialogProgressBG()
-            self.progress_dialog.create(f"{g.ADDON_NAME}Sync", "Seren: Trakt Sync")
+            self.progress_dialog.create(f"{g.ADDON_NAME}Sync", f"{g.ADDON_NAME}: {g.sync_service_name()} Sync")
 
     def _sync_movie_bookmarks(self):
         try:
