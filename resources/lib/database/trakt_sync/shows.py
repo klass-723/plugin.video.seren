@@ -226,6 +226,7 @@ class TraktSyncDatabase(trakt_sync.TraktSyncDatabase):
                      LEFT JOIN shows_meta AS m
                                ON m.id = e.trakt_show_id AND m.type = 'trakt'
             WHERE e.collected = TRUE
+            {self._list_visibility_filter("sh", "sh.watched_episodes < sh.episode_count") if limit else ""}
             GROUP BY e.trakt_show_id
             {order_by}
             {limit}

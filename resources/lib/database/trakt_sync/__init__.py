@@ -365,6 +365,24 @@ class TraktSyncDatabase(Database):
     def _get_datetime_now():
         return g.datetime_to_string(datetime.datetime.utcnow())
 
+    def _list_visibility_filter(self, alias, watched_condition):
+        """
+        SQL conditions matching the "hide unaired" / "hide watched" filters applied when a list is built.
+        Paged queries add them before LIMIT, otherwise a page loses items after it is cut, comes up short of
+        page_limit and no "Next page" item is shown.
+        A missing air date is let through: it is filled in when the item's metadata is updated.
+        :param alias: table alias holding air_date
+        :param watched_condition: SQL that is true for items that still count as unwatched
+        :rtype: str
+        """
+        conditions = ""
+        if self.hide_unaired:
+            now = self._get_datetime_now()
+            conditions += f" AND ({alias}.air_date IS NULL OR Datetime({alias}.air_date) < Datetime('{now}'))"
+        if self.hide_watched:
+            conditions += f" AND {watched_condition}"
+        return conditions
+
     def refresh_activities(self):
         self.activities = self.fetchone("SELECT * FROM activities WHERE sync_id=1")
 
