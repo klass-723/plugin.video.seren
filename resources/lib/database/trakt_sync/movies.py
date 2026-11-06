@@ -48,7 +48,8 @@ class TraktSyncDatabase(trakt_sync.TraktSyncDatabase):
             """
 
         if paginate:
-            query += f"ORDER BY collected_at desc LIMIT {self.page_limit} OFFSET {self.page_limit * (page - 1)}"
+            query += self._list_visibility_filter("m", "m.watched = 0")
+            query += f" ORDER BY collected_at desc LIMIT {self.page_limit} OFFSET {self.page_limit * (page - 1)}"
 
         return self.fetchall(query)
 
