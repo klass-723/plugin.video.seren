@@ -1,3 +1,6 @@
+Changelog 3.0.79
+[MAINTENANCE] Changes from merged commits
+
 Changelog 3.0.78
 [MAINTENANCE] Changes from merged commits
 
