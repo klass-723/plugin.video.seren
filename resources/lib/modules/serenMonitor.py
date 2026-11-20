@@ -27,6 +27,8 @@ class SerenMonitor(xbmc.Monitor):
     def onNotification(self, sender, method, data):
         if method == "System.OnWake":
             g.log("System.OnWake notification received", "info")
+            # Kodi resumes whatever was playing when the device slept, without going through Seren
+            xbmc.executebuiltin('RunPlugin("plugin://plugin.video.seren/?action=resumeTrackingAfterWake")')
             if not g.wait_for_abort(ONWAKE_NETWORK_UP_DELAY):  # Sleep for 5 seconds to make sure network is up
                 if g.PLATFORM == "android":
                     g.clear_runtime_setting("system.sleeping")
