@@ -17,6 +17,10 @@ from resources.lib.indexers.personal_tracker import trakt_auth_present
 from resources.lib.modules import smartPlay
 from resources.lib.modules.globals import g
 
+# Remembers what Seren is playing, so tracking can pick it up again when Kodi resumes it after the device sleeps
+WAKE_RESUME_PROPERTY = "seren.wake_resume"
+WAKE_RESUME_WAIT_SECONDS = 60
+
 
 class SerenPlayer(xbmc.Player):
     """
@@ -322,6 +326,7 @@ class SerenPlayer(xbmc.Player):
         self.playback_started = True
         self.playback_timestamp = time.time()
         self._running_path = self.getPlayingFile()
+        self._remember_for_wake_resume()
 
         self._apply_default_playback_speed()
 
@@ -333,6 +338,43 @@ class SerenPlayer(xbmc.Player):
                 self.smart_module.build_playlist()
             elif g.PLAYLIST.size() == g.PLAYLIST.getposition() + 1:
                 self.smart_module.append_next_season()
+
+    def _remember_for_wake_resume(self):
+        if not self._running_path or not self.item_information:
+            return
+        record = {"file": self._running_path, "item_information": self.item_information}
+        try:
+            g.HOME_WINDOW.setProperty(WAKE_RESUME_PROPERTY, json.dumps(record, default=str))
+        except (TypeError, ValueError):
+            g.log_stacktrace()
+
+    def resume_tracking(self, item_information, playing_file):
+        """
+        Tracks an item that Kodi resumed by itself after the device woke from sleep.
+        Kodi plays the stream again directly, so the Seren call that started it is gone and nothing would scrobble.
+        :param item_information: Information about the item, as remembered when Seren started it
+        :type item_information: dict
+        :param playing_file: The stream Kodi is playing
+        :type playing_file: str
+        :rtype: None
+        """
+        self.playing_file = playing_file
+        self.item_information = item_information
+        self.smart_module = smartPlay.SmartPlay(item_information)
+        self.mediatype = item_information["info"]["mediatype"]
+        self.trakt_id = item_information["info"]["trakt_id"]
+        self.playing_next_time = max(
+            self.playing_next_time,
+            item_information["info"].get("duration", 0) * (1 - (g.get_int_setting("playingnext.percent") / 100)),
+        )
+        self._add_support_for_external_trakt_scrobbling()
+
+        self.resumed = True
+        self.playback_started = True
+        self.playback_timestamp = time.time()
+        self._running_path = playing_file
+
+        self._keep_alive()
 
     def _end_playback(self):
         self._handle_bookmark()
@@ -697,3 +739,45 @@ class PlayerDialogs(xbmc.Player):
     @staticmethod
     def _is_video_window_open():
         return xbmcgui.getCurrentWindowId() == 12005
+
+
+def _stream_url(path):
+    # Kodi may append request headers after a "|"
+    return (path or "").split("|", 1)[0]
+
+
+def resume_tracking_after_wake(player_class=SerenPlayer):
+    """
+    Called when the device wakes. If Kodi resumes the stream Seren was playing before it slept, track it again.
+    :param player_class: Player to track with
+    :rtype: None
+    """
+    raw = g.HOME_WINDOW.getProperty(WAKE_RESUME_PROPERTY)
+    if not raw:
+        return
+    try:
+        record = json.loads(raw)
+        item_information = record["item_information"]
+        playing_file = record["file"]
+    except (ValueError, KeyError, TypeError):
+        return
+
+    player = player_class()
+    for _ in range(WAKE_RESUME_WAIT_SECONDS * 2):
+        if player.isPlayingVideo():
+            break
+        if g.wait_for_abort(0.5):
+            return
+    else:
+        return
+
+    try:
+        now_playing = player.getPlayingFile()
+    except RuntimeError:
+        return
+    if _stream_url(now_playing) != _stream_url(playing_file):
+        g.log("Kodi resumed something other than Seren's last item after waking, not tracking it", "debug")
+        return
+
+    g.log("Kodi resumed Seren's item after waking, tracking it again", "info")
+    player.resume_tracking(item_information, playing_file)

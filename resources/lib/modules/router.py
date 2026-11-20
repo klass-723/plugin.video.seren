@@ -795,6 +795,11 @@ def dispatch(params):
 
         toggle_reuselanguageinvoker()
 
+    elif action == "resumeTrackingAfterWake":
+        from resources.lib.modules.player import resume_tracking_after_wake
+
+        resume_tracking_after_wake()
+
     elif action == "runMaintenance":
         from resources.lib.common.maintenance import run_maintenance
 
